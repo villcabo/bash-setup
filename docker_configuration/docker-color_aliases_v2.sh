@@ -699,6 +699,7 @@ _dc_completion() {
     local prev="${COMP_WORDS[COMP_CWORD-1]}"
     local command=""
     local has_flags=false
+    local has_file_flag=false
 
     # Find the main command (ignoring flags)
     for ((i=1; i<COMP_CWORD; i++)); do
@@ -712,9 +713,20 @@ _dc_completion() {
     for ((i=1; i<COMP_CWORD; i++)); do
         if [[ "${COMP_WORDS[i]}" == -* ]]; then
             has_flags=true
-            break
+            # Check specifically for -f flag
+            if [[ "${COMP_WORDS[i]}" == "-f" ]]; then
+                has_file_flag=true
+            fi
         fi
     done
+
+    # Special handling for -f flag completion
+    if [[ "$prev" == "-f" ]]; then
+        # Complete with .yml and .yaml files
+        local files=$(ls *.yml *.yaml 2>/dev/null)
+        COMPREPLY=($(compgen -W "${files}" -- ${cur}))
+        return 0
+    fi
 
     if [[ ${COMP_CWORD} == 1 ]]; then
         # First arguments - subcommands
@@ -724,19 +736,19 @@ _dc_completion() {
         # Autocomplete flags for commands that support them
         case "$command" in
             up|u|ul|down|d|build|b)
-                local flags="-p -l -f --force"
+                local flags="-p -l -f -b --force"
                 # Get already used flags to avoid duplicates
                 local used_flags=""
                 for ((i=1; i<COMP_CWORD; i++)); do
-                    if [[ "${COMP_WORDS[i]}" == -* ]]; then
+                    if [[ "${COMP_WORDS[i]}" == -* && "${COMP_WORDS[i]}" != "-f" ]]; then
                         used_flags+="${COMP_WORDS[i]} "
                     fi
                 done
 
-                # Filter already used flags
+                # Filter already used flags (but allow -f to be repeated for different contexts)
                 local available_flags=""
                 for flag in $flags; do
-                    if [[ ! "$used_flags" =~ $flag ]]; then
+                    if [[ "$flag" == "-f" ]] || [[ ! "$used_flags" =~ $flag ]]; then
                         available_flags+="$flag "
                     fi
                 done
@@ -748,8 +760,8 @@ _dc_completion() {
         # Autocomplete services after commands and flags
         case "$command" in
             x|sh|bash|logs|l|l100|l300|l500|start|stop|restart|up|u|ul|down|d|build|b)
-                # Only complete services if we're not completing a flag
-                if [[ "$prev" != -* ]] || [[ "$has_flags" == true ]]; then
+                # Only complete services if we're not completing a flag argument
+                if [[ "$prev" != "-f" ]]; then
                     local services=$(_get_compose_services)
                     COMPREPLY=($(compgen -W "${services}" -- ${cur}))
                 fi
@@ -817,6 +829,14 @@ _dcup_completion() {
     prev="${COMP_WORDS[COMP_CWORD-1]}"
     has_flags=false
 
+    # Special handling for -f flag completion
+    if [[ "$prev" == "-f" ]]; then
+        # Complete with .yml and .yaml files
+        local files=$(ls *.yml *.yaml 2>/dev/null)
+        COMPREPLY=($(compgen -W "${files}" -- ${cur}))
+        return 0
+    fi
+
     # Check if there are already flags in the command line
     for ((i=1; i<COMP_CWORD; i++)); do
         if [[ "${COMP_WORDS[i]}" == -* ]]; then
@@ -827,24 +847,28 @@ _dcup_completion() {
 
     if [[ "$cur" == -* ]]; then
         # Autocomplete flags for up
-        local flags="-p -l -f -b"
+        local flags="-p -l -f -b --force"
         local used_flags=""
         for ((i=1; i<COMP_CWORD; i++)); do
-            if [[ "${COMP_WORDS[i]}" == -* ]]; then
+            if [[ "${COMP_WORDS[i]}" == -* && "${COMP_WORDS[i]}" != "-f" ]]; then
                 used_flags+="${COMP_WORDS[i]} "
             fi
         done
+
+        # Filter already used flags (but allow -f to be repeated for different contexts)
         local available_flags=""
         for flag in $flags; do
-            if [[ ! "$used_flags" =~ $flag ]]; then
+            if [[ "$flag" == "-f" ]] || [[ ! "$used_flags" =~ $flag ]]; then
                 available_flags+="$flag "
             fi
         done
         COMPREPLY=( $(compgen -W "$available_flags" -- "$cur") )
     else
-        # Autocomplete services after flags
-        local services=$(_get_compose_services)
-        COMPREPLY=( $(compgen -W "$services" -- "$cur") )
+        # Autocomplete services after flags (but not after -f)
+        if [[ "$prev" != "-f" ]]; then
+            local services=$(_get_compose_services)
+            COMPREPLY=( $(compgen -W "$services" -- "$cur") )
+        fi
     fi
 }
 
@@ -913,13 +937,27 @@ _compose_help() {
 
 BASIC:
   dc up, dc u          - Start services
-  dc up -p            - Up with pull
+  dc up -p            - Up with pull (--pull always)
   dc up -f FILE       - Up using specific compose file
-  dc up --force       - Up forcing recreation
-  dc up -b            - Up with build
+  dc up --force       - Up forcing recreation (--force-recreate)
+  dc up -b            - Up with build (--build)
+  dc up -l            - Up + automatic logs
   dc ul               - Up + automatic logs
   dc down, dc d        - Stop services
   dc down -f FILE     - Down using specific compose file
+
+FLAGS (can be combined):
+  -f FILE            - Use specific compose file
+  -p                 - Pull images before up (--pull always)
+  -b                 - Build before up (--build)
+  -l                 - Show logs after up
+  --force            - Force recreate containers (--force-recreate)
+
+FLAG EXAMPLES:
+  dc up -pbl         - Pull + build + logs
+  dc up -f app.yml -pl - Use app.yml with pull + logs
+  dc up --force -l   - Force recreate + logs
+  dcup -f prod.yml -pb - Use dcup with prod.yml + pull + build
 
 STATUS:
   dc ps, dc p          - List services
@@ -959,6 +997,12 @@ Examples:
   dc up -f prod.yml  - Up using prod.yml compose file
   dc default app.yml - Set app.yml as default compose file
   dcq data psql      - psql in first service containing 'data'
+
+AUTOCOMPLETION:
+  dc -f <TAB>        - Shows available .yml/.yaml files
+  dc -f app.yml -<TAB> - Shows available flags (-p, -l, -b, --force)
+  dc up <TAB>        - Shows available services
+  dcup -f <TAB>      - Shows available compose files
 EOF
 }
 
