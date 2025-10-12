@@ -73,6 +73,15 @@ _get_compose_file() {
         return 0
     fi
 
+    # Check for default file set in .env
+    if [[ -f ".env" ]] && grep -q "^DOCKER_COMPOSE_FILE=" .env; then
+        local env_file=$(grep "^DOCKER_COMPOSE_FILE=" .env | cut -d'=' -f2)
+        if [[ -f "$env_file" ]]; then
+            echo "$env_file"
+            return 0
+        fi
+    fi
+
     # Default priority: docker-compose.yml > docker-compose.yaml
     if [[ -f docker-compose.yml ]]; then
         echo "docker-compose.yml"
