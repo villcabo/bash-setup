@@ -74,7 +74,7 @@ fi
 
 # Add to PATH if not already there (for non-root users)
 if [[ "$BIN_DIR" == "$HOME/.local/bin" ]]; then
-    local shell_profile=""
+    shell_profile=""
     if [[ -f "$HOME/.bashrc" ]]; then
         shell_profile="$HOME/.bashrc"
     elif [[ -f "$HOME/.zshrc" ]]; then

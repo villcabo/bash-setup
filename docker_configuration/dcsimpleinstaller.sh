@@ -55,6 +55,17 @@ REMOTE_BASE_URL="https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAME}/ma
 VERSION_FILE="$HOME/.docker_color_version"
 
 # Functions
+confirm_operation() {
+    local operation="$1"
+    echo -e "${YELLOW}Are you sure you want to $operation? (type 'yes' to confirm): ${NORMAL}"
+    read -r response
+    if [[ "$response" != "yes" ]]; then
+        echo -e "${RED}Operation cancelled${NORMAL}"
+        return 1
+    fi
+    return 0
+}
+
 show_help() {
     echo -e "${BOLD}Docker Color Aliases Manager${NORMAL}"
     echo ""
@@ -74,13 +85,55 @@ get_local_version() {
     if [[ -f "$VERSION_FILE" ]]; then
         cat "$VERSION_FILE"
     else
-        echo "unknown"
+        cat << EOF
+COMMIT_ID=not-installed
+COMMIT_DATE=
+COMMIT_MESSAGE=
+COMMIT_BRANCH=
+EOF
     fi
 }
 
+get_version_value() {
+    local version_content="$1"
+    local key="$2"
+    echo "$version_content" | grep "^$key=" | cut -d'=' -f2-
+}
+
 get_remote_version() {
-    curl -s "https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/commits?path=docker_configuration/docker-color_aliases_v2.sh&per_page=1" | \
-    grep -o '"sha":"[^"]*' | head -1 | cut -d'"' -f4 | cut -c1-7
+    # Get latest commit info from main branch
+    local api_url="https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/commits/main"
+    local commit_info=$(curl -s --connect-timeout 10 "$api_url" 2>/dev/null)
+
+    if [[ -n "$commit_info" && "$commit_info" != *"API rate limit"* ]]; then
+        local hash=$(echo "$commit_info" | grep '"sha"' | head -1 | cut -d'"' -f4)
+        local date=$(echo "$commit_info" | grep '"date"' | head -1 | cut -d'"' -f4)
+        local message=$(echo "$commit_info" | grep '"message"' | head -1 | cut -d'"' -f4 | head -c 80)
+        local branch="main"
+
+        if [[ -n "$hash" ]]; then
+            cat << EOF
+COMMIT_ID=$hash
+COMMIT_DATE=$date
+COMMIT_MESSAGE=$message
+COMMIT_BRANCH=$branch
+EOF
+        else
+            cat << EOF
+COMMIT_ID=unknown
+COMMIT_DATE=$(date -Iseconds)
+COMMIT_MESSAGE=Local installation
+COMMIT_BRANCH=main
+EOF
+        fi
+    else
+        cat << EOF
+COMMIT_ID=unknown
+COMMIT_DATE=$(date -Iseconds)
+COMMIT_MESSAGE=Local installation
+COMMIT_BRANCH=main
+EOF
+    fi
 }
 
 show_status() {
@@ -88,14 +141,46 @@ show_status() {
     local remote_ver=$(get_remote_version)
 
     echo -e "${BOLD}Docker Color Aliases Status${NORMAL}"
-    echo -e "Local version:  ${CYAN}$local_ver${NORMAL}"
-    echo -e "Remote version: ${CYAN}$remote_ver${NORMAL}"
+    echo ""
 
-    if [[ -f "$LOCAL_FILE" ]]; then
-        echo -e "Status: ${GREEN}Installed${NORMAL}"
-        echo -e "File: $LOCAL_FILE"
+    # Parse and display local version info
+    echo -e "${BOLD}Local Installation:${NORMAL}"
+    local local_hash=$(get_version_value "$local_ver" "COMMIT_ID")
+
+    if [[ "$local_hash" == "not-installed" ]]; then
+        echo -e "  Status: ${RED}Not installed${NORMAL}"
     else
-        echo -e "Status: ${RED}Not installed${NORMAL}"
+        local local_date=$(get_version_value "$local_ver" "COMMIT_DATE")
+        local local_message=$(get_version_value "$local_ver" "COMMIT_MESSAGE")
+        local local_branch=$(get_version_value "$local_ver" "COMMIT_BRANCH")
+
+        echo -e "  Hash: ${CYAN}${local_hash:0:12}...${NORMAL} (${local_hash})"
+        echo -e "  Date: ${CYAN}$local_date${NORMAL}"
+        echo -e "  Message: ${CYAN}$local_message${NORMAL}"
+        echo -e "  Branch: ${CYAN}$local_branch${NORMAL}"
+    fi
+
+    echo ""
+
+    # Parse and display remote version info
+    echo -e "${BOLD}Remote Repository (Latest):${NORMAL}"
+    local remote_hash=$(get_version_value "$remote_ver" "COMMIT_ID")
+    local remote_date=$(get_version_value "$remote_ver" "COMMIT_DATE")
+    local remote_message=$(get_version_value "$remote_ver" "COMMIT_MESSAGE")
+    local remote_branch=$(get_version_value "$remote_ver" "COMMIT_BRANCH")
+
+    echo -e "  Hash: ${CYAN}${remote_hash:0:12}...${NORMAL} (${remote_hash})"
+    echo -e "  Date: ${CYAN}$remote_date${NORMAL}"
+    echo -e "  Message: ${CYAN}$remote_message${NORMAL}"
+    echo -e "  Branch: ${CYAN}$remote_branch${NORMAL}"
+
+    echo ""
+
+    # Installation status
+    if [[ -f "$LOCAL_FILE" ]]; then
+        echo -e "Aliases File: ${GREEN}Installed${NORMAL} (${LOCAL_FILE})"
+    else
+        echo -e "Aliases File: ${RED}Not found${NORMAL}"
     fi
 }
 
@@ -103,21 +188,29 @@ check_updates() {
     local local_ver=$(get_local_version)
     local remote_ver=$(get_remote_version)
 
-    if [[ "$local_ver" == "unknown" ]]; then
-        echo -e "${YELLOW}Local version unknown. Run 'update' to get latest version.${NORMAL}"
+    local local_hash=$(get_version_value "$local_ver" "COMMIT_ID")
+    local remote_hash=$(get_version_value "$remote_ver" "COMMIT_ID")
+
+    if [[ "$local_hash" == "not-installed" || "$local_hash" == "unknown" ]]; then
+        echo -e "${YELLOW}Local version unknown. Run 'install' to get latest version.${NORMAL}"
         return 1
-    elif [[ "$local_ver" != "$remote_ver" ]]; then
+    elif [[ "$local_hash" != "$remote_hash" ]]; then
         echo -e "${YELLOW}Update available!${NORMAL}"
-        echo -e "Current: ${CYAN}$local_ver${NORMAL}"
-        echo -e "Latest:  ${CYAN}$remote_ver${NORMAL}"
-        return 0
+        echo -e "Local:  ${CYAN}${local_hash:0:12}...${NORMAL}"
+        echo -e "Remote: ${CYAN}${remote_hash:0:12}...${NORMAL}"
+        return 1
     else
         echo -e "${GREEN}You have the latest version!${NORMAL}"
-        return 1
+        echo -e "Hash: ${CYAN}${local_hash:0:12}...${NORMAL}"
+        return 0
     fi
 }
 
 update_aliases() {
+    if ! confirm_operation "update Docker Color Aliases"; then
+        return 1
+    fi
+
     echo -e "${BOLD}Updating Docker Color Aliases...${NORMAL}"
 
     # Backup current file if exists
@@ -129,7 +222,7 @@ update_aliases() {
     # Download latest version
     local download_url="${REMOTE_BASE_URL}/docker-color_aliases_v2.sh"
     if wget -q "$download_url" -O "$LOCAL_FILE"; then
-        # Save version info
+        # Save version info (commit hash, date, message, branch)
         get_remote_version > "$VERSION_FILE"
         echo -e "${GREEN}${BOLD}Update completed successfully${NORMAL}"
         echo -e "${BOLD}Run 'source ~/.bash_aliases' or 'source ~/.zshrc' to apply changes${NORMAL}"
@@ -145,12 +238,16 @@ update_aliases() {
 }
 
 install_aliases() {
+    if ! confirm_operation "install Docker Color Aliases"; then
+        return 1
+    fi
+
     echo -e "${BOLD}Installing Docker Color Aliases...${NORMAL}"
 
     # Download the aliases file directly
     local download_url="${REMOTE_BASE_URL}/docker-color_aliases_v2.sh"
     if wget -q "$download_url" -O "$LOCAL_FILE"; then
-        # Save version info
+        # Save version info (commit hash, date, message, branch)
         get_remote_version > "$VERSION_FILE"
         echo -e "${GREEN}${BOLD}Docker Color Aliases downloaded successfully${NORMAL}"
 
@@ -199,6 +296,10 @@ configure_shell_files() {
 }
 
 uninstall_aliases() {
+    if ! confirm_operation "uninstall Docker Color Aliases"; then
+        return 1
+    fi
+
     echo -e "${BOLD}Uninstalling Docker Color Aliases...${NORMAL}"
 
     # Remove files
