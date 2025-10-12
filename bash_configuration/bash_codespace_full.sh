@@ -114,8 +114,8 @@ esac
 # bash theme - partly inspired by https://github.com/ohmyzsh/ohmyzsh/blob/master/themes/robbyrussell.zsh-theme
 __bash_prompt() {
   local userpart='`export XIT=$? \
-    && [ "$EUID" -eq 0 ] && echo -n "\[\033[1;31m\]\u " || \
-    ([ ! -z "${GITHUB_USER:-}" ] && echo -n "\[\033[1;32m\]@${GITHUB_USER:-} " || echo -n "\[\033[1;32m\]\u ") \
+    && [ "$EUID" -eq 0 ] && echo -n "\[\033[1;31m\]\u\[\033[1;33m\]@\[\033[1;36m\]\h " || \
+    ([ ! -z "${GITHUB_USER:-}" ] && echo -n "\[\033[1;32m\]@${GITHUB_USER:-}\[\033[1;33m\]@\[\033[1;36m\]\h " || echo -n "\[\033[1;32m\]\u\[\033[1;33m\]@\[\033[1;36m\]\h ") \
     && [ "$XIT" -ne "0" ] && echo -n "\[\033[1;31m\]➜" || echo -n "\[\033[0m\]➜"`'
   local gitbranch='`\
     if [ "$(git config --get devcontainers-theme.hide-status 2>/dev/null)" != 1 ] && [ "$(git config --get codespaces-theme.hide-status 2>/dev/null)" != 1 ]; then \
@@ -366,7 +366,12 @@ bashrc_help() {
   echo ""
 
   echo -e "${BOLD}${YELLOW}🎨 PROMPT FEATURES:${RESET}"
-  echo -e "  ${GREEN}•${RESET} Color-coded standard bash prompt"
+  echo -e "  ${GREEN}•${RESET} Color-coded prompt with hostname visibility"
+  echo -e "  ${GREEN}•${RESET} Root user: ${RED}root${CYAN}@hostname${RESET} (red/cyan/blue colors)"
+  echo -e "  ${GREEN}•${RESET} Regular user: ${GREEN}user${CYAN}@hostname${RESET} (green/cyan/blue colors)"
+  echo -e "  ${GREEN}•${RESET} GitHub user detection: ${GREEN}@GITHUB_USER${CYAN}@hostname${RESET}"
+  echo -e "  ${GREEN}•${RESET} Git branch integration with dirty status indicators"
+  echo -e "  ${GREEN}•${RESET} Exit status indicators (red ➜ for errors, normal ➜ for success)"
   echo -e "  ${GREEN}•${RESET} Terminal title management with dynamic command display"
   echo -e "  ${GREEN}•${RESET} Current directory display"
   echo -e "  ${GREEN}•${RESET} Support for debian_chroot display"
