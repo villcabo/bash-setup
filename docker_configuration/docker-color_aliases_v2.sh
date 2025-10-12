@@ -1,8 +1,85 @@
 #!/usr/bin/env bash
 
 # ==============================================================
-# Docker Aliases - Enhanced and Simplified Version
+# Docker Color Aliases - Enhanced and Simplified Version v2
 # ==============================================================
+#
+# A comprehensive Docker and Docker Compose aliases collection that provides:
+# - Simplified commands with intelligent shortcuts (d, dc)
+# - Smart confirmation dialogs for destructive operations
+# - Enhanced autocompletion for containers and services
+# - Flexible compose file detection (docker-compose.yml, custom via DOCKER_COMPOSE_FILE)
+# - Color-coded output integration with docker-color-output
+# - Quick execution functions (dq, dcq) for pattern matching
+# - Comprehensive help system and status reporting
+#
+# USAGE:
+#   Source this file in your shell profile:
+#   [[ -s "$HOME/.docker_color_settings" ]] && source "$HOME/.docker_color_settings"
+#
+# MAIN COMMANDS:
+#   d [command]     - Docker shortcuts (ps, logs, exec, etc.)
+#   dc [command]    - Docker Compose shortcuts (up, down, logs, etc.)
+#   dq [pattern]    - Quick exec in first matching container
+#   dcq [pattern]   - Quick exec in first matching service
+#   dstatus         - Show containers and services status
+#   dhelp/dchelp    - Show detailed help
+#
+# EXAMPLES:
+#   d ps            - List running containers
+#   dc up -pl       - Start services with pull and logs
+#   dq web bash     - Execute bash in first container matching 'web'
+#   dc x api bash   - Execute bash in 'api' service
+#
+# CONFIGURATION:
+#   DOCKER_COMPOSE_FILE - Custom compose file path (default: docker-compose.yml)
+#
+# DEPENDENCIES:
+#   - docker, docker compose
+#   - docker-color-output (optional, for colored output)
+#   - bash completion support
+#
+# AUTHOR: villcabo
+# REPOSITORY: https://github.com/villcabo/docker-color-output-install
+# ==============================================================
+
+# Color variables
+readonly COLOR_RESET="\033[0m"
+readonly COLOR_RED="\033[1;31m"
+readonly COLOR_GREEN="\033[1;32m"
+readonly COLOR_YELLOW="\033[1;33m"
+readonly COLOR_BLUE="\033[1;34m"
+readonly COLOR_MAGENTA="\033[1;35m"
+readonly COLOR_CYAN="\033[1;36m"
+readonly COLOR_WHITE="\033[1;37m"
+
+# Compose file detection
+_get_compose_file() {
+    # Check for custom compose file from environment variable
+    if [[ -n "$DOCKER_COMPOSE_FILE" && -f "$DOCKER_COMPOSE_FILE" ]]; then
+        echo "$DOCKER_COMPOSE_FILE"
+        return 0
+    fi
+
+    # Default priority: docker-compose.yml > docker-compose.yaml
+    if [[ -f docker-compose.yml ]]; then
+        echo "docker-compose.yml"
+        return 0
+    elif [[ -f docker-compose.yaml ]]; then
+        echo "docker-compose.yaml"
+        return 0
+    fi
+
+    return 1
+}
+
+# Confirmation function
+_confirm_operation() {
+    local message="${1:-Continue with operation?}"
+    printf "${COLOR_RED}${message} [yes/N]: ${COLOR_RESET}"
+    read -r response
+    [[ "$response" == "yes" ]]
+}
 
 # Main function for docker with subcommands
 d() {
@@ -55,6 +132,13 @@ d() {
 
 # Main function for docker compose with subcommands
 dc() {
+    # Check for compose file first
+    local compose_file=$(_get_compose_file)
+    if [[ $? -ne 0 ]]; then
+        echo "❌ No compose file found. Expected docker-compose.yml, docker-compose.yaml, or set DOCKER_COMPOSE_FILE environment variable."
+        return 1
+    fi
+
     case "$1" in
         # Up with smart options
         up|u)
@@ -92,23 +176,18 @@ dc() {
             fi
 
             # Show confirmation with colors
-            echo -e "\033[1;33m╔══════════════════════════════════════════════════════════════╗\033[0m"
-            echo -e "\033[1;33m║                    DOCKER COMPOSE UP                         ║\033[0m"
-            echo -e "\033[1;33m╚══════════════════════════════════════════════════════════════╝\033[0m"
-            echo -e "\033[1;36mAction:\033[0m Start Docker Compose services"
+            echo -e "${COLOR_YELLOW}DOCKER COMPOSE UP${COLOR_RESET}"
+            echo -e "${COLOR_CYAN}Action:${COLOR_RESET} Start Docker Compose services"
             if [[ -n "$opts" ]]; then
-                echo -e "\033[1;36mOptions:\033[0m$opts"
+                echo -e "${COLOR_CYAN}Options:${COLOR_RESET}$opts"
             fi
-            echo -e "\033[1;36mAffected services:\033[0m \033[1;32m${target_services[*]}\033[0m"
+            echo -e "${COLOR_CYAN}Affected services:${COLOR_RESET} ${COLOR_GREEN}${target_services[*]}${COLOR_RESET}"
             if [[ "$show_logs" == true ]]; then
-                echo -e "\033[1;36mAdditional action:\033[0m Show logs after up"
+                echo -e "${COLOR_CYAN}Additional action:${COLOR_RESET} Show logs after up"
             fi
             echo ""
-            printf "\033[1;31mContinue with operation? [y/N]: \033[0m"
-            read -r response
-
-            if [[ "$response" =~ ^[Yy]$ ]]; then
-                local cmd="docker compose up -d$opts"
+            if _confirm_operation "Continue with operation?"; then
+                local cmd="docker compose -f \"$compose_file\" up -d$opts"
                 if [[ ${#services[@]} -gt 0 ]]; then
                     cmd+=" ${services[*]}"
                 fi
@@ -116,54 +195,54 @@ dc() {
                 if eval "$cmd"; then
                     if [[ "$show_logs" == true ]]; then
                         if [[ ${#services[@]} -gt 0 ]]; then
-                            docker compose logs -f "${services[@]}"
+                            docker compose -f "$compose_file" logs -f "${services[@]}"
                         else
-                            docker compose logs -f
+                            docker compose -f "$compose_file" logs -f
                         fi
                     fi
                 fi
             else
-                echo -e "\033[1;33mOperation cancelled.\033[0m"
+                echo -e "${COLOR_YELLOW}Operation cancelled.${COLOR_RESET}"
                 return 1
             fi
             ;;
 
         # Up con logs automáticos
-        ul)       shift; docker compose up -d "$@" && docker compose logs -f "$@" ;;
+        ul)       shift; docker compose -f "$compose_file" up -d "$@" && docker compose -f "$compose_file" logs -f "$@" ;;
 
         # Básicos
-        ps|p)     shift; docker compose ps "$@" | docker-color-output ;;
-        ps1|p1)   shift; docker compose ps --format "table {{.Name}}\\t{{.Service}}\\t{{.RunningFor}}\\t{{.Status}}\\t{{.Image}}" "$@" | docker-color-output ;;
-        psp)      shift; docker compose ps --format "table {{.Name}}\\t{{.Service}}\\t{{.Ports}}" "$@" | docker-color-output ;;
+        ps|p)     shift; docker compose -f "$compose_file" ps "$@" | docker-color-output ;;
+        ps1|p1)   shift; docker compose -f "$compose_file" ps --format "table {{.Name}}\\t{{.Service}}\\t{{.RunningFor}}\\t{{.Status}}\\t{{.Image}}" "$@" | docker-color-output ;;
+        psp)      shift; docker compose -f "$compose_file" ps --format "table {{.Name}}\\t{{.Service}}\\t{{.Ports}}" "$@" | docker-color-output ;;
 
         # Stats y logs
-        stats|s)  shift; docker compose stats "$@" | docker-color-output ;;
-        s1)       shift; docker compose stats --no-stream "$@" | docker-color-output ;;
-        logs|l)   shift; docker compose logs --tail 100 -f "$@" ;;
-        l100)     shift; docker compose logs --tail 100 -f "$@" ;;
-        l300)     shift; docker compose logs --tail 300 -f "$@" ;;
-        l500)     shift; docker compose logs --tail 500 -f "$@" ;;
+        stats|s)  shift; docker compose -f "$compose_file" stats "$@" | docker-color-output ;;
+        s1)       shift; docker compose -f "$compose_file" stats --no-stream "$@" | docker-color-output ;;
+        logs|l)   shift; docker compose -f "$compose_file" logs --tail 100 -f "$@" ;;
+        l100)     shift; docker compose -f "$compose_file" logs --tail 100 -f "$@" ;;
+        l300)     shift; docker compose -f "$compose_file" logs --tail 300 -f "$@" ;;
+        l500)     shift; docker compose -f "$compose_file" logs --tail 500 -f "$@" ;;
 
         # Exec (más simple)
-        x)        shift; docker compose exec "$@" ;;
-        sh)       shift; docker compose exec "$1" sh ;;
-        bash)     shift; docker compose exec "$1" bash ;;
+        x)        shift; docker compose -f "$compose_file" exec "$@" ;;
+        sh)       shift; docker compose -f "$compose_file" exec "$1" sh ;;
+        bash)     shift; docker compose -f "$compose_file" exec "$1" bash ;;
 
         # Control de servicios
-        down|d)   shift; docker compose down "$@" ;;
-        start)    shift; docker compose start "$@" ;;
-        stop)     shift; docker compose stop "$@" ;;
-        restart)  shift; docker compose restart "$@" ;;
+        down|d)   shift; docker compose -f "$compose_file" down "$@" ;;
+        start)    shift; docker compose -f "$compose_file" start "$@" ;;
+        stop)     shift; docker compose -f "$compose_file" stop "$@" ;;
+        restart)  shift; docker compose -f "$compose_file" restart "$@" ;;
 
         # Build y pull
-        build|b)  shift; docker compose build "$@" ;;
-        pull)     shift; docker compose pull "$@" ;;
+        build|b)  shift; docker compose -f "$compose_file" build "$@" ;;
+        pull)     shift; docker compose -f "$compose_file" pull "$@" ;;
 
         # Ayuda
         help|h)   _compose_help ;;
 
         # Por defecto, pasar comando directo a docker compose
-        *)        docker compose "$@" ;;
+        *)        docker compose -f "$compose_file" "$@" ;;
     esac
 }
 
@@ -181,6 +260,13 @@ alias dpri='d image prune'
 alias ds='d stats'
 
 dcup() {
+    # Check for compose file first
+    local compose_file=$(_get_compose_file)
+    if [[ $? -ne 0 ]]; then
+        echo "❌ No compose file found. Expected docker-compose.yml, docker-compose.yaml, or set DOCKER_COMPOSE_FILE environment variable."
+        return 1
+    fi
+
     # Get available services
     local all_services=($(_get_compose_services))
     local target_services=()
@@ -213,23 +299,18 @@ dcup() {
     fi
 
     # Show confirmation with colors
-    echo -e "\033[1;33m╔══════════════════════════════════════════════════════════════╗\033[0m"
-    echo -e "\033[1;33m║                    DOCKER COMPOSE UP                         ║\033[0m"
-    echo -e "\033[1;33m╚══════════════════════════════════════════════════════════════╝\033[0m"
-    echo -e "\033[1;36mAction:\033[0m Start Docker Compose services"
+    echo -e "${COLOR_YELLOW}DOCKER COMPOSE UP${COLOR_RESET}"
+    echo -e "${COLOR_CYAN}Action:${COLOR_RESET} Start Docker Compose services"
     if [[ -n "$opts" ]]; then
-        echo -e "\033[1;36mOptions:\033[0m$opts"
+        echo -e "${COLOR_CYAN}Options:${COLOR_RESET}$opts"
     fi
-    echo -e "\033[1;36mAffected services:\033[0m \033[1;32m${target_services[*]}\033[0m"
+    echo -e "${COLOR_CYAN}Affected services:${COLOR_RESET} ${COLOR_GREEN}${target_services[*]}${COLOR_RESET}"
     if [[ "$show_logs" == true ]]; then
-        echo -e "\033[1;36mAdditional action:\033[0m Show logs after up"
+        echo -e "${COLOR_CYAN}Additional action:${COLOR_RESET} Show logs after up"
     fi
     echo ""
-    printf "\033[1;31mContinue with operation? [y/N]: \033[0m"
-    read -r response
-
-    if [[ "$response" =~ ^[Yy]$ ]]; then
-        local cmd="docker compose up -d$opts"
+    if _confirm_operation "Continue with operation?"; then
+        local cmd="docker compose -f \"$compose_file\" up -d$opts"
         if [[ ${#services[@]} -gt 0 ]]; then
             cmd+=" ${services[*]}"
         fi
@@ -237,14 +318,14 @@ dcup() {
         if eval "$cmd"; then
             if [[ "$show_logs" == true ]]; then
                 if [[ ${#services[@]} -gt 0 ]]; then
-                    docker compose logs -f "${services[@]}"
+                    docker compose -f "$compose_file" logs -f "${services[@]}"
                 else
-                    docker compose logs -f
+                    docker compose -f "$compose_file" logs -f
                 fi
             fi
         fi
     else
-        echo -e "\033[1;33mOperation cancelled.\033[0m"
+        echo -e "${COLOR_YELLOW}Operation cancelled.${COLOR_RESET}"
         return 1
     fi
 }
@@ -278,16 +359,17 @@ dq() {
 
 # Function to execute command in the first service that matches
 dcq() {
-    if [[ ! -f docker-compose.yml ]] && [[ ! -f docker-compose.yaml ]] && [[ ! -f compose.yml ]] && [[ ! -f compose.yaml ]]; then
-        echo "❌ No compose file in this directory"
+    local compose_file=$(_get_compose_file)
+    if [[ $? -ne 0 ]]; then
+        echo "❌ No compose file found. Expected docker-compose.yml, docker-compose.yaml, or set DOCKER_COMPOSE_FILE environment variable."
         return 1
     fi
 
-    local service=$(docker compose ps --services | grep -i "$1" | head -1)
+    local service=$(docker compose -f "$compose_file" ps --services | grep -i "$1" | head -1)
     if [[ -n "$service" ]]; then
         echo "→ Executing in service: $service"
         shift
-        docker compose exec "$service" "$@"
+        docker compose -f "$compose_file" exec "$service" "$@"
     else
         echo "❌ No service found matching: $1"
         return 1
@@ -299,9 +381,10 @@ dstatus() {
     echo "=== CONTAINERS ==="
     docker ps --format "table {{.Names}}\\t{{.Status}}\\t{{.Ports}}" | docker-color-output
 
-    if [[ -f docker-compose.yml ]] || [[ -f docker-compose.yaml ]] || [[ -f compose.yml ]] || [[ -f compose.yaml ]]; then
+    local compose_file=$(_get_compose_file)
+    if [[ $? -eq 0 ]]; then
         echo -e "\n=== COMPOSE SERVICES ==="
-        docker compose ps --format "table {{.Service}}\\t{{.Status}}\\t{{.Ports}}" | docker-color-output
+        docker compose -f "$compose_file" ps --format "table {{.Service}}\\t{{.Status}}\\t{{.Ports}}" | docker-color-output
     fi
 }
 
@@ -322,15 +405,9 @@ _get_docker_containers() {
 }
 
 _get_compose_services() {
-    # Priority: docker-compose.yml > docker-compose.yaml > compose.yml > compose.yaml
-    if [[ -f docker-compose.yml ]]; then
-        docker compose config --services 2>/dev/null
-    elif [[ -f docker-compose.yaml ]]; then
-        docker compose -f docker-compose.yaml config --services 2>/dev/null
-    elif [[ -f compose.yml ]]; then
-        docker compose -f compose.yml config --services 2>/dev/null
-    elif [[ -f compose.yaml ]]; then
-        docker compose -f compose.yaml config --services 2>/dev/null
+    local compose_file=$(_get_compose_file)
+    if [[ $? -eq 0 ]]; then
+        docker compose -f "$compose_file" config --services 2>/dev/null
     fi
 }
 
@@ -621,6 +698,13 @@ dclt() {
     local matched_services=()
     local arg
 
+    # Check for compose file first
+    local compose_file=$(_get_compose_file)
+    if [[ $? -ne 0 ]]; then
+        echo "❌ No compose file found. Expected docker-compose.yml, docker-compose.yaml, or set DOCKER_COMPOSE_FILE environment variable."
+        return 1
+    fi
+
     # Parse combined flags and arguments
     while [[ $# -gt 0 ]]; do
         if [[ "$1" == --* ]]; then
@@ -707,15 +791,11 @@ dclt() {
 
     echo "Services found: ${unique_services[*]}"
     if [[ "$ask_confirm" == true ]]; then
-        printf "Show logs for these services? [y/N]: "
-        read resp
-        if [[ "$resp" =~ ^[Yy]$ ]]; then
-            : # continue
-        else
+        if ! _confirm_operation "Show logs for these services?"; then
             return 0
         fi
     fi
-    docker compose logs --tail 100 -f "${unique_services[@]}"
+    docker compose -f "$compose_file" logs --tail 100 -f "${unique_services[@]}"
 }
 
 # ==============================================================
@@ -745,6 +825,14 @@ complete -F _dclt_completion dclt
 dcpr() {
     local show_all=false show_summary=false
     local services=() service
+
+    # Check for compose file first
+    local compose_file=$(_get_compose_file)
+    if [[ $? -ne 0 ]]; then
+        echo "❌ No compose file found. Expected docker-compose.yml, docker-compose.yaml, or set DOCKER_COMPOSE_FILE environment variable."
+        return 1
+    fi
+
     # Parse flags and arguments
     while [[ $# -gt 0 ]]; do
         case "$1" in
@@ -790,7 +878,7 @@ dcpr() {
             local max_service=12 max_commit=9 max_email=9 max_branch=6 max_msg=13
             for svc in "${all_services[@]}"; do
                 printf "Processing: %s\r" "$svc" >&2
-                local props=$(docker compose exec "$svc" sh -c 'if [ -f /app/resources/git.properties ]; then cat /app/resources/git.properties; elif [ -f /usr/share/nginx/html/git.properties ]; then cat /usr/share/nginx/html/git.properties; fi' 2>/dev/null)
+                local props=$(docker compose -f "$compose_file" exec "$svc" sh -c 'if [ -f /app/resources/git.properties ]; then cat /app/resources/git.properties; elif [ -f /usr/share/nginx/html/git.properties ]; then cat /usr/share/nginx/html/git.properties; fi' 2>/dev/null)
                 if [[ -z "$props" ]]; then
                     continue
                 fi
@@ -830,7 +918,7 @@ dcpr() {
             # Show all complete git.properties
             for svc in "${all_services[@]}"; do
                 echo "# $svc"
-                docker compose exec "$svc" sh -c 'if [ -f /app/resources/git.properties ]; then cat /app/resources/git.properties; elif [ -f /usr/share/nginx/html/git.properties ]; then cat /usr/share/nginx/html/git.properties; else echo "❌ git.properties not found"; fi'
+                docker compose -f "$compose_file" exec "$svc" sh -c 'if [ -f /app/resources/git.properties ]; then cat /app/resources/git.properties; elif [ -f /usr/share/nginx/html/git.properties ]; then cat /usr/share/nginx/html/git.properties; else echo "❌ git.properties not found"; fi'
                 echo
             done
         fi
@@ -843,7 +931,7 @@ dcpr() {
         return 1
     fi
     service="${services[0]}"
-    docker compose exec "$service" sh -c 'if [ -f /app/resources/git.properties ]; then cat /app/resources/git.properties; elif [ -f /usr/share/nginx/html/git.properties ]; then cat /usr/share/nginx/html/git.properties; else echo "❌ git.properties not found"; fi'
+    docker compose -f "$compose_file" exec "$service" sh -c 'if [ -f /app/resources/git.properties ]; then cat /app/resources/git.properties; elif [ -f /usr/share/nginx/html/git.properties ]; then cat /usr/share/nginx/html/git.properties; else echo "❌ git.properties not found"; fi'
 }
 
 # Autocompletion for dcpr (compose services)

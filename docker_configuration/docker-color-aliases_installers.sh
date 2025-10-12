@@ -1,69 +1,57 @@
 #!/bin/bash
 
-  # Color codes for logging
-  NORMAL='\033[0m'
-  BOLD='\033[1m'
-  ITALIC='\033[3m'
-  QUIT_ITALIC='\033[23m'
-  UNDERLINE='\033[4m'
-  GREEN='\033[0;32m'
-  YELLOW='\033[1;33m'
-  RED='\033[0;31m'
-  BLUE='\033[0;34m'
-  NC='\033[0m' # No Color
+# Docker Color Aliases Manager Installer
+# This script installs the dcsimpleinstaller management tool
+
+# Author: villcabo
+# Repository: https://github.com/villcabo/docker-color-output-install
+
+# Color codes for logging
+NORMAL='\033[0m'
+BOLD='\033[1m'
+ITALIC='\033[3m'
+QUIT_ITALIC='\033[23m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+RED='\033[0;31m'
+BLUE='\033[0;34m'
+CYAN='\033[0;36m'
 
 # GitHub repository details
 REPO_OWNER="villcabo"
-REPO_NAME="docker-color-output"
-SETTINGS_FILE_PATH="docker-color_aliases.sh"
-GITHUB_RAW_URL="https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAME}/main/docker_configuration/${SETTINGS_FILE_PATH}"
+REPO_NAME="docker-color-output-install"
+GITHUB_RAW_URL="https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAME}/main/docker_configuration"
 
-# Paths
-BASH_ALIASES_FILE="$HOME/.bash_aliases"
-ZSHRC_FILE="$HOME/.zshrc"
-DOCKER_COLOR_OUTPUT_FILE="$HOME/.docker_color_settings"
+# Determine binary directory based on user permissions
+if [[ $EUID -eq 0 ]]; then
+    BIN_DIR="/usr/local/bin"
+else
+    BIN_DIR="$HOME/.local/bin"
+    # Create local bin directory if it doesn't exist
+    mkdir -p "$BIN_DIR"
+fi
+
+MANAGER_SCRIPT="$BIN_DIR/dcsimpleinstaller"
 
 # Function to display usage
 usage() {
     echo "Usage: $0 [options]"
     echo "Options:"
-    echo "  -u, --url URL    Custom URL for docker color settings file"
-    echo "  -v, --version VERSION  Version to install: v1 or v2 (default: v2)"
     echo "  -h, --help       Display this help message"
+    echo ""
+    echo "This installer will download and install the dcsimpleinstaller management tool."
+    echo "Use 'dcsimpleinstaller help' after installation for available commands."
 }
-
-# Default version
-VERSION="v2"
 
 # Parse command-line arguments
 while [[ $# -gt 0 ]]; do
     case "$1" in
-        -u|--url)
-            if [[ -n "$2" ]]; then
-                DOWNLOAD_URL="$2"
-                shift
-            else
-                echo -e "${RED}${BOLD}➔ Missing URL after $1${NORMAL}"
-                usage
-                exit 1
-            fi
-            ;;
-        -v|--version)
-            if [[ "$2" == "v1" || "$2" == "v2" ]]; then
-                VERSION="$2"
-                shift
-            else
-                echo -e "${RED}${BOLD}➔ Invalid version: $2. Use v1 or v2.${NORMAL}"
-                usage
-                exit 1
-            fi
-            ;;
         -h|--help)
             usage
             exit 0
             ;;
         *)
-            echo -e "${RED}${BOLD}➔ Unknown option: $1${NORMAL}"
+            echo -e "${RED}${BOLD}Unknown option: $1${NORMAL}"
             usage
             exit 1
             ;;
@@ -71,63 +59,39 @@ while [[ $# -gt 0 ]]; do
     shift
 done
 
-# Set default download URL if not specified
-if [[ -z "$DOWNLOAD_URL" ]]; then
-    if [[ "$VERSION" == "v1" ]]; then
-        SETTINGS_FILE_PATH="docker-color_aliases_v1.sh"
-    else
-        SETTINGS_FILE_PATH="docker-color_aliases_v2.sh"
-    fi
-    GITHUB_RAW_URL="https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAME}/main/docker_configuration/${SETTINGS_FILE_PATH}"
-    DOWNLOAD_URL=$GITHUB_RAW_URL
-fi
-
 # Start installation process
-echo -e "${BOLD}➔ Setting up Docker Color Output settings ⏳...${NORMAL}"
+echo -e "${BOLD}Installing Docker Color Aliases Manager...${NORMAL}"
 
-# Remove existing settings file if it exists
-if [ -f "$DOCKER_COLOR_OUTPUT_FILE" ]; then
-    echo -e "${BOLD}➔ Removing existing ${ITALIC}$HOME/.docker_color_settings${QUIT_ITALIC} file ⏳...${NORMAL}"
-    rm "$DOCKER_COLOR_OUTPUT_FILE"
-    echo -e "${GREEN}${BOLD}➔ Existing ${ITALIC}$HOME/.docker_color_settings${QUIT_ITALIC} file removed successfully${NORMAL}"
-fi
-
-# Download settings file
-echo -e "${BOLD}➔ Downloading Docker Color Output settings ⏳...${NORMAL}"
-if wget -q "$DOWNLOAD_URL" -O "$DOCKER_COLOR_OUTPUT_FILE"; then
-    echo -e "${GREEN}${BOLD}➔ Docker Color Output settings downloaded successfully${NORMAL}"
+# Download and install the management script
+echo -e "${BOLD}Downloading dcsimpleinstaller...${NORMAL}"
+if wget -q "${GITHUB_RAW_URL}/dcsimpleinstaller.sh" -O "$MANAGER_SCRIPT"; then
+    chmod +x "$MANAGER_SCRIPT"
+    echo -e "${GREEN}${BOLD}dcsimpleinstaller downloaded and installed successfully${NORMAL}"
 else
-    echo -e "${RED}${BOLD}➔ Docker Color Output settings download failed ❌${NORMAL}"
+    echo -e "${RED}${BOLD}Failed to download dcsimpleinstaller${NORMAL}"
     exit 1
 fi
 
-# Function to add settings to shell configuration file
-add_settings_to_shell() {
-    local shell_rc_file=$1
-    if grep -q '[[ -s "$HOME/.docker_color_settings" ]] && source "$HOME/.docker_color_settings"' "$shell_rc_file"; then
-        echo -e "${YELLOW}${BOLD}➔ Docker Color Output settings already exist in $shell_rc_file${NORMAL}"
-        echo -e "${BOLD}➔ To apply changes, run: ${BLUE}${BOLD}${ITALIC}source $shell_rc_file${NORMAL}"
-    else
-        echo -e "${BOLD}➔ Adding Docker Color Output settings to $shell_rc_file ⏳...${NORMAL}"
-        echo '[[ -s "$HOME/.docker_color_settings" ]] && source "$HOME/.docker_color_settings"' >> "$shell_rc_file"
-        echo -e "${GREEN}${BOLD}➔ Docker Color Output settings added to $shell_rc_file${NORMAL}"
-        echo -e "${BOLD}➔ To apply changes, run: ${BLUE}${BOLD}${ITALIC}source $shell_rc_file${NORMAL}"
+# Add to PATH if not already there (for non-root users)
+if [[ "$BIN_DIR" == "$HOME/.local/bin" ]]; then
+    local shell_profile=""
+    if [[ -f "$HOME/.bashrc" ]]; then
+        shell_profile="$HOME/.bashrc"
+    elif [[ -f "$HOME/.zshrc" ]]; then
+        shell_profile="$HOME/.zshrc"
     fi
-}
 
-# Create .bash_aliases if it doesn't exist
-if [ ! -f "$BASH_ALIASES_FILE" ]; then
-    echo -e "${BOLD}➔ Creating ${ITALIC}$BASH_ALIASES_FILE${QUIT_ITALIC} file ⏳...${NORMAL}"
-    touch "$BASH_ALIASES_FILE"
-    echo -e "${GREEN}${BOLD}➔ Created ${ITALIC}$BASH_ALIASES_FILE${QUIT_ITALIC} file${NORMAL}"
+    if [[ -n "$shell_profile" ]]; then
+        if ! grep -q "\$HOME/.local/bin" "$shell_profile"; then
+            echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$shell_profile"
+            echo -e "${GREEN}Added $BIN_DIR to PATH in $shell_profile${NORMAL}"
+            echo -e "${YELLOW}Please run: ${CYAN}source $shell_profile${NORMAL} ${YELLOW}or restart your terminal${NORMAL}"
+        fi
+    fi
 fi
 
-# Add settings to .bash_aliases
-add_settings_to_shell "$BASH_ALIASES_FILE"
-
-# Add settings to .zshrc if it exists
-if [ -f "$ZSHRC_FILE" ]; then
-    add_settings_to_shell "$ZSHRC_FILE"
-fi
-
-echo -e "${GREEN}${BOLD}➔ Docker Color Output installation completed successfully ✅${NORMAL}"
+echo -e "${GREEN}${BOLD}Installation completed successfully${NORMAL}"
+echo -e "${BOLD}Management tool installed at: ${CYAN}$MANAGER_SCRIPT${NORMAL}"
+echo -e "${BOLD}Usage: ${CYAN}dcsimpleinstaller [command]${NORMAL}"
+echo -e "${BOLD}Get started: ${CYAN}dcsimpleinstaller help${NORMAL}"
+echo -e "${BOLD}Install aliases: ${CYAN}dcsimpleinstaller install${NORMAL}"
