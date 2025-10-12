@@ -1,3 +1,50 @@
+#!/bin/bash
+# ==============================================================
+# Enhanced Bash Configuration (bash_full.sh)
+# ==============================================================
+#
+# AUTHOR: villcabo
+# REPOSITORY: https://github.com/villcabo/docker-color-output-install
+# VERSION: 1.0
+# CREATED: October 2025
+#
+# DESCRIPTION:
+# Complete bash configuration file with enhanced features including:
+# - Colorized prompt based on user privileges (root/normal user)
+# - Smart directory colors and ls aliases
+# - Git integration with branch display and status
+# - Advanced command history management
+# - Docker and development-focused aliases
+# - Performance optimizations for bash shell
+# - Cross-platform compatibility enhancements
+#
+# FEATURES:
+# - Root user: Red prompt for security awareness
+# - Normal user: Green prompt for standard operations
+# - Git branch display in prompt when in git repositories
+# - Enhanced history with timestamps and deduplication
+# - Color-coded file listings with dircolors
+# - Development-friendly aliases and functions
+# - Docker integration support
+#
+# USAGE:
+# This file can be used as a complete replacement for ~/.bashrc
+# or sourced from your existing bashrc for additional functionality.
+# Run 'bashrc_help' or 'bhelp' after installation to see all features.
+#
+# INSTALLATION:
+# Download the latest version from GitHub repository:
+# wget https://raw.githubusercontent.com/villcabo/docker-color-output-install/main/bash_configuration/bash_full.sh -O ~/.bashrc
+# source ~/.bashrc
+#
+# COMPATIBILITY:
+# - Bash 4.0+
+# - Linux distributions (Ubuntu, Debian, CentOS, etc.)
+# - macOS with bash installed
+# - Windows WSL/WSL2
+#
+# ==============================================================
+
 # ~/.bashrc: executed by bash(1) for non-login shells.
 
 # Note: PS1 and umask are already set in /etc/profile. You should not
@@ -12,23 +59,27 @@ else
   PS1='\[\033[01;32m\]\u@\h\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\$ '
 fi
 
-# Configuration for dircolors (colors in ls)
-export LS_OPTIONS='--color=auto'
-eval "$(dircolors -b)"
+# --------------------------------------------------------------------------
 
-# Common aliases
-alias ls='ls $LS_OPTIONS'
-alias ll='ls $LS_OPTIONS -l'
-alias la='ls $LS_OPTIONS -A'
-alias l='ls $LS_OPTIONS -lA'
-alias grep='grep --color=auto'
-alias fgrep='fgrep --color=auto'
-alias egrep='egrep --color=auto'
+# make less more friendly for non-text input files, see lesspipe(1)
+[ -x /usr/bin/lesspipe ] && eval "$(SHELL=/bin/sh lesspipe)"
 
-# Some aliases to avoid mistakes
-# alias rm='rm -i'
-# alias cp='cp -i'
-# alias mv='mv -i'
+# enable color support of ls and also add handy aliases
+if [ -x /usr/bin/dircolors ]; then
+  test -r ~/.dircolors && eval "$(dircolors -b ~/.dircolors)" || eval "$(dircolors -b)"
+
+	# Common aliases
+	alias ls='ls --color=auto'
+	alias ll='ls --color=auto -alF'
+	alias la='ls --color=auto -A'
+	alias l='ls --color=auto -lA'
+	alias grep='grep --color=auto'
+	alias fgrep='fgrep --color=auto'
+	alias egrep='egrep --color=auto'
+	alias fgrepn='fgrep --color=never'
+	alias egrepn='egrep --color=never'
+fi
+
 
 # Add bin directories to PATH if they exist
 if [ -d "$HOME/.local/bin" ]; then
@@ -63,13 +114,15 @@ mkcd() {
 
 # History: do not save duplicate commands and commands starting with space
 HISTCONTROL=ignoreboth
+HISTIGNORE='ls:ll:la:l:cd:pwd:clear:history:rm:mv:cp:mkdir:touch:chmod:chown:chgrp:ln:mkdir'
 
 # History size
-HISTSIZE=1000
-HISTFILESIZE=2000
+HISTSIZE=50000
+HISTFILESIZE=100000
 
 # Append to the history file, don't overwrite it
 shopt -s histappend
+PROMPT_COMMAND='history -a; history -c; history -r; '"$PROMPT_COMMAND"
 
 # Check the window size after each command
 shopt -s checkwinsize
@@ -90,16 +143,36 @@ if ! shopt -oq posix; then
 fi
 
 # Additional useful aliases
+ports_func() {
+    if command -v netstat &>/dev/null; then
+        netstat -tulpen
+    elif command -v ss &>/dev/null; then
+        ss -tulpen
+    else
+        echo "No netstat or ss command found"
+    fi
+}
+apply_bashrc() {
+    if [ -n "$BASH_VERSION" ]; then
+        [ -f "${HOME}/.bashrc" ] && . "${HOME}/.bashrc"
+        hash -r
+        echo "Bash configuration reloaded"
+    elif [ -n "$ZSH_VERSION" ]; then
+        [ -f "${HOME}/.zshrc" ] && . "${HOME}/.zshrc"
+        hash -r
+        echo "Zsh configuration reloaded"
+    else
+        echo "Unsupported shell"
+    fi
+}
 alias free='free -h'
 alias df='df -h'
 alias du='du -h'
-alias ports='netstat -tulanp'                                                  # Shows open ports
-alias myip='curl -s https://ipinfo.io/ip || curl -s https://ifconfig.me; echo' # Shows public IP
-alias myiplocal='hostname -I | awk "{print \$1}"'                              # Shows local IP
-alias clearhistory='history -c && history -w'                                  # Clear history
-alias path='echo -e ${PATH//:/\\n}'                                            # Shows PATH in separate lines
-alias weather='curl wttr.in'                                                   # Shows current weather (requires internet connection)
-alias reloadbash='source ~/.bashrc && echo "Bash configuration reloaded"'      # Reload bash configuration
+alias ports='ports_func'
+alias publip='curl -m 5 -fsS https://ipinfo.io/ip || curl -m 5 -fsS https://ifconfig.me || curl -m 5 -fsS https://api.ipify.org; echo'
+alias privip='hostname -I 2>/dev/null | awk "{print \$1}" || ip -4 addr show scope global | awk '\''/inet /{print $2}'\'' | cut -d/ -f1 | head -n1'
+alias clearhistory='history -c && history -w'
+alias reloadsh='apply_bashrc'
 
 # History with date and time
 export HISTTIMEFORMAT="%d/%m/%y %T "
@@ -109,21 +182,23 @@ function hg() {
   history | grep "$1"
 }
 
-# Function to easily extract compressed files
+# Function to easily extract compressed files (safer and broader)
 extract() {
-  if [ -f $1 ]; then
-    case $1 in
-    *.tar.bz2) tar xjf $1 ;;
-    *.tar.gz) tar xzf $1 ;;
-    *.bz2) bunzip2 $1 ;;
-    *.rar) unrar e $1 ;;
-    *.gz) gunzip $1 ;;
-    *.tar) tar xf $1 ;;
-    *.tbz2) tar xjf $1 ;;
-    *.tgz) tar xzf $1 ;;
-    *.zip) unzip $1 ;;
-    *.Z) uncompress $1 ;;
-    *.7z) 7z x $1 ;;
+  if [ -f "$1" ]; then
+    case "$1" in
+    *.tar.bz2) tar xjf -- "$1" ;;
+    *.tar.gz)  tar xzf -- "$1" ;;
+    *.tar.zst) tar --zstd -xf -- "$1" ;;
+    *.bz2)     bunzip2 -- "$1" ;;
+    *.rar)     unrar e -- "$1" ;;
+    *.gz)      gunzip -- "$1" ;;
+    *.tar)     tar xf -- "$1" ;;
+    *.tbz2)    tar xjf -- "$1" ;;
+    *.tgz)     tar xzf -- "$1" ;;
+    *.zip)     unzip -- "$1" ;;
+    *.Z)       uncompress -- "$1" ;;
+    *.7z)      7z x -- "$1" ;;
+    *.zst)     zstd -d -- "$1" ;;
     *) echo "'$1' cannot be extracted via extract()" ;;
     esac
   else
@@ -141,91 +216,161 @@ system_info() {
   local PURPLE="\033[1;35m"
   local CYAN="\033[1;36m"
   local WHITE="\033[1;37m"
-  local ORANGE="\033[1;33m"
-  local GRAYBOLD="\033[1;37m"
-  local GRAY="\033[0;37m"
   local RESET="\033[0m"
+  local BOLD="\033[1m"
 
-  # Separator for better visualization
-  echo -e "${GRAY}╭─────────────────────────── SYSTEM INFORMATION ───────────────────────────╮${RESET}"
-
-  # Current date and time
+  echo -e "${RED}${BOLD}────────────── Distribution Information ──────────────${RESET}"
   printf "${WHITE}%-12s :${RESET} %s\n" "Date/Time" "$(date '+%Y-%m-%d %H:%M:%S')"
-
-  # User and hostname
   printf "${PURPLE}%-12s :${RESET} %s\n" "User" "$(whoami)@$(cat /etc/hostname)"
 
-  # IP addresses
-  printf "${WHITE}%-12s :${RESET} %s\n" "Local IP" "$(hostname -I | awk '{print $1}')"
-
-  # System and kernel
-  printf "${BLUE}%-12s :${RESET} %s %s\n" "System" "$(uname -o)" "$(uname -m)"
-
-  # Distribution (if the file exists)
+  # Distribution and kernel
+  local DISTRO=""
   if [ -f /etc/os-release ]; then
     DISTRO=$(grep -w "PRETTY_NAME" /etc/os-release | cut -d= -f2 | tr -d '"')
-    printf "${BLUE}%-12s :${RESET} %s\n" "Distribution" "$DISTRO"
   fi
-
+  printf "${BLUE}%-12s :${RESET} %s\n" "Distro" "${DISTRO:-Unknown}"
   printf "${RED}%-12s :${RESET} %s\n" "Kernel" "$(uname -r)"
+
+  # Uptime
   printf "${GREEN}%-12s :${RESET} %s\n" "Uptime" "$(uptime -p | sed 's/up //')"
 
-  # CPU information
-  CPU_MODEL=$(grep -m 1 "model name" /proc/cpuinfo | cut -d: -f2 | sed 's/^ //g')
-  CPU_CORES=$(grep -c "processor" /proc/cpuinfo)
-  printf "${CYAN}%-12s :${RESET} %s\n" "CPU" "$CPU_MODEL"
-  printf "${CYAN}%-12s :${RESET} %s\n" "CPU Cores" "$CPU_CORES"
-
-  # CPU temperature (if sensors is installed)
-  if command -v sensors &> /dev/null; then
-    CPU_TEMP=$(sensors | grep -m 1 "Core 0" | awk '{print $3}')
-    if [ ! -z "$CPU_TEMP" ]; then
-      printf "${RED}%-12s :${RESET} %s\n" "CPU Temp" "$CPU_TEMP"
-    fi
-  fi
-
-  # Memory and disk usage
+  # Memory and disk usage (root)
   printf "${YELLOW}%-12s :${RESET} %s\n" "Memory" "$(free -h | awk '/^Mem:/ {print $3 " of " $2 " used (" int($3/$2*100) "%)"}')"
-  printf "${YELLOW}%-12s :${RESET} %s\n" "Swap" "$(free -h | awk '/^Swap:/ {if ($2 == "0B") print "Not available"; else print $3 " of " $2 " used (" int($3/$2*100) "%)"}' 2>/dev/null || echo "Not available")"
-  printf "${PURPLE}%-12s :${RESET} %s\n" "Disk (/) " "$(df -h --output=used,size,pcent / | awk 'NR==2 {print $1 " of " $2 " used (" $3 ")"}')"
+  printf "${PURPLE}%-12s :${RESET} %s\n" "Disk (/)" "$(df -h --output=used,size,pcent / | awk 'NR==2 {print $1 " of " $2 " used (" $3 ")"}')"
 
-  # Home folder (if on a separate partition)
-  if df -h | grep -q "/home"; then
-    printf "${PURPLE}%-12s :${RESET} %s\n" "Disk (/home)" "$(df -h --output=used,size,pcent /home | awk 'NR==2 {print $1 " of " $2 " used (" $3 ")"}')"
-  fi
-
-  # Processes
-  PROCESS_COUNT=$(ps aux | wc -l)
-  printf "${ORANGE}%-12s :${RESET} %s\n" "Processes" "$((PROCESS_COUNT-1))"  # Subtract 1 for the header
-
-  # System load
-  printf "${CYAN}%-12s :${RESET} %s\n" "Load" "$(cat /proc/loadavg | cut -d' ' -f1-3)"
-
-  # Connected users
-  USERS_ON=$(who | wc -l)
-  printf "${GREEN}%-12s :${RESET} %s\n" "Users" "$USERS_ON connected"
-
-  # Services (systemd)
-  if command -v systemctl &> /dev/null; then
-    SERVICES_RUNNING=$(systemctl list-units --type=service --state=running | grep -c "\.service")
-    SERVICES_FAILED=$(systemctl list-units --type=service --state=failed | grep -c "\.service")
-    printf "${RED}%-12s :${RESET} %s running, %s failed\n" "Services" "$SERVICES_RUNNING" "$SERVICES_FAILED"
-  fi
-
-  # Network information
-  CONNECTIONS=$(netstat -ant | grep ESTABLISHED | wc -l)
-  printf "${BLUE}%-12s :${RESET} %s established\n" "Connections" "$CONNECTIONS"
-
-  # Last logins
-  printf "${GRAYBOLD}%-12s :${RESET}\n" "Last logins"
-  printf "${GRAY}%-12s %-20s %-15s %-15s\n" " User" "         Date and Time" "     Origin" "        IP"
-  printf "${GRAY}%-12s\n" "──────────────────────────────────────────────────────────────────────────"
-  last -a -n10
-  # Final separator
-  echo -e "${GRAY}╰──────────────────────────────────────────────────────────────────────────╯${RESET}"
+  # IP addresses
+  local LOCAL_IP
+  LOCAL_IP=$(hostname -I 2>/dev/null | awk '{print $1}')
+  printf "${CYAN}%-12s :${RESET} %s\n" "Local IP" "${LOCAL_IP:-N/A}"
   echo ""
 }
-
+# Alias for system_info
 alias sinfo=system_info
-# Uncomment to show system information at terminal startup
-#system_info
+alias osinfo=system_info
+
+
+# Help function - Shows all features and capabilities of this bashrc
+bashrc_help() {
+  local BOLD='\033[1m'
+  local GREEN='\033[0;32m'
+  local BLUE='\033[0;34m'
+  local CYAN='\033[0;36m'
+  local YELLOW='\033[1;33m'
+  local RED='\033[0;31m'
+  local PURPLE='\033[0;35m'
+  local RESET='\033[0m'
+
+  echo -e "${BOLD}${BLUE}===============================================${RESET}"
+  echo -e "${BOLD}${GREEN}    Enhanced Bash Configuration Help${RESET}"
+  echo -e "${BOLD}${BLUE}===============================================${RESET}"
+  echo ""
+  echo -e "${BOLD}${CYAN}AUTHOR:${RESET} villcabo"
+  echo -e "${BOLD}${CYAN}REPO:${RESET} github.com/villcabo/docker-color-output-install"
+  echo ""
+
+  echo -e "${BOLD}${YELLOW}🎨 PROMPT FEATURES:${RESET}"
+  echo -e "  ${GREEN}•${RESET} Color-coded by user privilege level:"
+  echo -e "    ${RED}•${RESET} Root user: Red prompt (security awareness)"
+  echo -e "    ${GREEN}•${RESET} Normal user: Green prompt"
+  echo -e "  ${GREEN}•${RESET} Current directory display with colors"
+  echo -e "  ${GREEN}•${RESET} Username@hostname format"
+  echo ""
+
+  echo -e "${BOLD}${YELLOW}📚 HISTORY ENHANCEMENTS:${RESET}"
+  echo -e "  ${GREEN}•${RESET} Timestamps in history (HISTTIMEFORMAT)"
+  echo -e "  ${GREEN}•${RESET} Duplicate command removal (HISTCONTROL=ignoreboth)"
+  echo -e "  ${GREEN}•${RESET} Large history size (50,000 lines)"
+  echo -e "  ${GREEN}•${RESET} Command filtering (ignores common commands)"
+  echo -e "  ${GREEN}•${RESET} Immediate history appending"
+  echo -e "  ${GREEN}•${RESET} History search with hg function"
+  echo ""
+
+  echo -e "${BOLD}${YELLOW}🎯 BUILT-IN ALIASES:${RESET}"
+  echo -e "  ${CYAN}File listings:${RESET}"
+  echo -e "    ls, ll, la, l    - Enhanced colorized directory listings"
+  echo -e "    ll               - Detailed format with -alF flags"
+  echo -e "  ${CYAN}Text searching:${RESET}"
+  echo -e "    grep, fgrep, egrep  - Colorized search commands"
+  echo -e "    fgrepn, egrepn      - Non-colored versions"
+  echo -e "  ${CYAN}Navigation:${RESET}"
+  echo -e "    ..               - Go up one directory"
+  echo -e "    ...              - Go up two directories"
+  echo -e "    ....             - Go up three directories"
+  echo -e "    .....            - Go up four directories"
+  echo -e "  ${CYAN}System info:${RESET}"
+  echo -e "    free, df, du     - Human-readable output"
+  echo -e "    ports            - Smart port detection (netstat/ss)"
+  echo -e "    publip           - Show public IP address"
+  echo -e "    privip           - Show private IP address"
+  echo -e "    sinfo, osinfo    - System information summary"
+  echo -e "  ${CYAN}Utilities:${RESET}"
+  echo -e "    clearhistory     - Clear command history"
+  echo -e "    reloadsh         - Reload bash configuration"
+  echo ""
+
+  echo -e "${BOLD}${YELLOW}🛠️ BUILT-IN FUNCTIONS:${RESET}"
+  echo -e "  ${GREEN}•${RESET} ${CYAN}extract <file>${RESET}     - Universal file extractor"
+  echo -e "    Supports: zip, tar, gz, bz2, rar, 7z, zst, etc."
+  echo -e "  ${GREEN}•${RESET} ${CYAN}mkcd <directory>${RESET}   - Create directory and enter it"
+  echo -e "  ${GREEN}•${RESET} ${CYAN}hg <pattern>${RESET}       - Search command history"
+  echo -e "  ${GREEN}•${RESET} ${CYAN}system_info${RESET}        - Show basic system information"
+  echo -e "    Date/time, user, distro, kernel, uptime, memory, disk, IP"
+  echo -e "  ${GREEN}•${RESET} ${CYAN}apply_bashrc${RESET}       - Reload bash/zsh configuration"
+  echo -e "  ${GREEN}•${RESET} ${CYAN}ports_func${RESET}         - Smart port listing (netstat/ss)"
+  echo -e "  ${GREEN}•${RESET} ${CYAN}bashrc_help${RESET}        - Show this help (you're here!)"
+  echo ""
+
+  echo -e "${BOLD}${YELLOW}⚙️ SHELL IMPROVEMENTS:${RESET}"
+  echo -e "  ${GREEN}•${RESET} Case-insensitive tab completion"
+  echo -e "  ${GREEN}•${RESET} Spell checking for directory names (cdspell, dirspell)"
+  echo -e "  ${GREEN}•${RESET} Recursive globbing with ** pattern"
+  echo -e "  ${GREEN}•${RESET} Auto-cd by just typing directory name"
+  echo -e "  ${GREEN}•${RESET} Enhanced PATH with ~/.local/bin and ~/bin"
+  echo -e "  ${GREEN}•${RESET} Vim as default editor"
+  echo -e "  ${GREEN}•${RESET} Automatic bash completion loading"
+  echo -e "  ${GREEN}•${RESET} Window size checking after each command"
+  echo ""
+
+  echo -e "${BOLD}${YELLOW}🎨 COLOR FEATURES:${RESET}"
+  echo -e "  ${GREEN}•${RESET} Colorized ls output with dircolors support"
+  echo -e "  ${GREEN}•${RESET} Color-coded file types and permissions"
+  echo -e "  ${GREEN}•${RESET} Enhanced grep with colors"
+  echo -e "  ${GREEN}•${RESET} Color-coded prompt based on user privileges"
+  echo -e "  ${GREEN}•${RESET} Custom dircolors support (~/.dircolors)"
+  echo ""
+
+  echo -e "${BOLD}${YELLOW}📋 USAGE EXAMPLES:${RESET}"
+  echo -e "  ${CYAN}extract project.tar.gz${RESET}   - Extract any supported archive"
+  echo -e "  ${CYAN}mkcd new_project${RESET}         - Create and enter directory"
+  echo -e "  ${CYAN}hg docker${RESET}                - Search history for 'docker'"
+  echo -e "  ${CYAN}sinfo${RESET}                    - Quick system overview"
+  echo -e "  ${CYAN}ports${RESET}                    - See what's listening on ports"
+  echo -e "  ${CYAN}publip${RESET}                   - Get your public IP"
+  echo -e "  ${CYAN}clearhistory${RESET}             - Clean command history"
+  echo -e "  ${CYAN}reloadsh${RESET}                 - Reload after making changes"
+  echo ""
+
+  echo -e "${BOLD}${YELLOW}📥 INSTALLATION:${RESET}"
+  echo -e "  ${GREEN}Direct download:${RESET}"
+  echo -e "    ${CYAN}wget https://raw.githubusercontent.com/villcabo/docker-color-output-install/main/bash_configuration/bash_full.sh -O ~/.bashrc${RESET}"
+  echo -e "    ${CYAN}source ~/.bashrc${RESET}"
+  echo -e "  ${GREEN}Using installer:${RESET}"
+  echo -e "    ${CYAN}wget https://raw.githubusercontent.com/villcabo/docker-color-output-install/main/docker_configuration/dcsimpleinstaller.sh${RESET}"
+  echo -e "    ${CYAN}chmod +x dcsimpleinstaller.sh && ./dcsimpleinstaller.sh install${RESET}"
+  echo ""
+
+  echo -e "${BOLD}${YELLOW}🔧 INTEGRATION:${RESET}"
+  echo -e "  ${GREEN}•${RESET} Loads ~/.bash_aliases if present"
+  echo -e "  ${GREEN}•${RESET} Compatible with Docker Color Aliases"
+  echo -e "  ${GREEN}•${RESET} Works with most Linux distributions"
+  echo -e "  ${GREEN}•${RESET} WSL/WSL2 compatible"
+  echo -e "  ${GREEN}•${RESET} Server and desktop environment friendly"
+  echo ""
+
+  echo -e "${BOLD}${BLUE}===============================================${RESET}"
+  echo -e "${BOLD}${GREEN}Run 'bashrc_help' anytime to see this help!${RESET}"
+  echo -e "${BOLD}${BLUE}===============================================${RESET}"
+}
+# Aliases for help
+alias bhelp='bashrc_help'
+alias bashhelp='bashrc_help'

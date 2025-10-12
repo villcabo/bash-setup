@@ -264,6 +264,7 @@ install_aliases() {
 
 configure_shell_files() {
     local bash_aliases="$HOME/.bash_aliases"
+    local bashrc="$HOME/.bashrc"
     local zshrc="$HOME/.zshrc"
     local source_line='[[ -s "$HOME/.docker_color_settings" ]] && source "$HOME/.docker_color_settings"'
 
@@ -283,15 +284,36 @@ configure_shell_files() {
         echo -e "${YELLOW}Already configured in $bash_aliases${NORMAL}"
     fi
 
-    # Add to .zshrc if it exists and not already there
-    if [[ -f "$zshrc" ]]; then
-        if ! grep -q "$source_line" "$zshrc"; then
-            echo -e "${BOLD}Adding Docker Color settings to $zshrc...${NORMAL}"
-            echo "$source_line" >> "$zshrc"
-            echo -e "${GREEN}Added to $zshrc${NORMAL}"
-        else
-            echo -e "${YELLOW}Already configured in $zshrc${NORMAL}"
+    # Check if .bashrc sources .bash_aliases
+    local bashrc_needs_config=true
+    if [[ -f "$bashrc" ]]; then
+        if grep -q "\.bash_aliases" "$bashrc" || grep -q "bash_aliases" "$bashrc"; then
+            bashrc_needs_config=false
         fi
+    fi
+
+    # Check if .zshrc sources .bash_aliases
+    local zshrc_needs_config=true
+    if [[ -f "$zshrc" ]]; then
+        if grep -q "\.bash_aliases" "$zshrc" || grep -q "bash_aliases" "$zshrc"; then
+            zshrc_needs_config=false
+        fi
+    fi
+
+    # Show instructions if needed
+    if [[ "$bashrc_needs_config" == true && -f "$bashrc" ]]; then
+        echo ""
+        echo -e "${YELLOW}${BOLD}IMPORTANT: Your .bashrc doesn't source .bash_aliases${NORMAL}"
+        echo -e "${BOLD}To enable Docker Color Aliases in bash, add this line to your ~/.bashrc:${NORMAL}"
+        echo -e "${CYAN}if [ -f ~/.bash_aliases ]; then . ~/.bash_aliases; fi${NORMAL}"
+        echo ""
+    fi
+
+    if [[ "$zshrc_needs_config" == true && -f "$zshrc" ]]; then
+        echo -e "${YELLOW}${BOLD}IMPORTANT: Your .zshrc doesn't source .bash_aliases${NORMAL}"
+        echo -e "${BOLD}To enable Docker Color Aliases in zsh, add this line to your ~/.zshrc:${NORMAL}"
+        echo -e "${CYAN}[[ -f ~/.bash_aliases ]] && source ~/.bash_aliases${NORMAL}"
+        echo ""
     fi
 }
 
@@ -308,7 +330,7 @@ uninstall_aliases() {
     [[ -f "${LOCAL_FILE}.backup" ]] && rm "${LOCAL_FILE}.backup" && echo -e "${GREEN}Removed backup file${NORMAL}"
 
     # Remove from shell configs (user needs to do this manually for safety)
-    echo -e "${YELLOW}Please manually remove the following line from ~/.bash_aliases and ~/.zshrc:${NORMAL}"
+    echo -e "${YELLOW}Please manually remove the following line from ~/.bash_aliases:${NORMAL}"
     echo -e "   ${CYAN}[[ -s \"\$HOME/.docker_color_settings\" ]] && source \"\$HOME/.docker_color_settings\"${NORMAL}"
 
     echo -e "${GREEN}${BOLD}Uninstallation completed${NORMAL}"

@@ -28,6 +28,13 @@
 # EXAMPLES:
 #   d ps            - List running containers
 #   dc up -pl       - Start services with pull and logs
+#   dc up -f compose.prod.yml  - Start services using specific compose file
+#   dc up --force   - Start services with force recreate
+#   dc down -f compose.dev.yml - Stop services using specific compose file
+#   dc build -f compose.test.yml - Build services using specific compose file
+#   dc default compose.yml      - Set default compose file
+#   dc default remove           - Remove default compose file setting
+#   dc info                     - Show compose configuration and status
 #   dq web bash     - Execute bash in first container matching 'web'
 #   dc x api bash   - Execute bash in 'api' service
 #
@@ -44,14 +51,19 @@
 # ==============================================================
 
 # Color variables
-readonly COLOR_RESET="\033[0m"
-readonly COLOR_RED="\033[1;31m"
-readonly COLOR_GREEN="\033[1;32m"
-readonly COLOR_YELLOW="\033[1;33m"
-readonly COLOR_BLUE="\033[1;34m"
-readonly COLOR_MAGENTA="\033[1;35m"
-readonly COLOR_CYAN="\033[1;36m"
-readonly COLOR_WHITE="\033[1;37m"
+CR="\033[0m"        # COLOR_RESET
+CRE="\033[1;31m"    # COLOR_RED
+CGR="\033[1;32m"    # COLOR_GREEN
+CYE="\033[1;33m"    # COLOR_YELLOW
+CBL="\033[1;34m"    # COLOR_BLUE
+CMA="\033[1;35m"    # COLOR_MAGENTA
+CCY="\033[1;36m"    # COLOR_CYAN
+CWH="\033[1;37m"    # COLOR_WHITE
+
+# Text styles
+CB="\033[1m"        # BOLD
+CI="\033[3m"        # ITALIC
+CU="\033[4m"        # UNDERLINE
 
 # Compose file detection
 _get_compose_file() {
@@ -76,7 +88,7 @@ _get_compose_file() {
 # Confirmation function
 _confirm_operation() {
     local message="${1:-Continue with operation?}"
-    printf "${COLOR_RED}${message} [yes/N]: ${COLOR_RESET}"
+    printf "${CB}${CRE}${message} [yes/N]: ${CR}"
     read -r response
     [[ "$response" == "yes" ]]
 }
@@ -135,7 +147,7 @@ dc() {
     # Check for compose file first
     local compose_file=$(_get_compose_file)
     if [[ $? -ne 0 ]]; then
-        echo "❌ No compose file found. Expected docker-compose.yml, docker-compose.yaml, or set DOCKER_COMPOSE_FILE environment variable."
+        echo -e "${CRE}No compose file found. Expected ${CB}docker-compose.yml${CR}, ${CB}docker-compose.yaml${CR}, or set ${CB}DOCKER_COMPOSE_FILE${CR} environment variable ❌${CR}"
         return 1
     fi
 
@@ -146,24 +158,44 @@ dc() {
             local opts=""
             local show_logs=false
             local services=()
+            local custom_file=""
 
             # Parse flags and services
             while [[ $# -gt 0 ]]; do
                 if [[ $1 == -* ]]; then
-                    local flags="${1#-}"
-                    for ((i=0; i<${#flags}; i++)); do
-                        case "${flags:$i:1}" in
-                            p) opts+=" --pull always" ;;
-                            f) opts+=" --force-recreate" ;;
-                            b) opts+=" --build" ;;
-                            l) show_logs=true ;;
-                        esac
-                    done
+                    if [[ $1 == "-f" && -n "$2" && $2 != -* ]]; then
+                        # -f followed by filename
+                        custom_file="$2"
+                        shift 2
+                        continue
+                    elif [[ $1 == "--force" ]]; then
+                        opts+=" --force-recreate"
+                        shift
+                        continue
+                    else
+                        local flags="${1#-}"
+                        for ((i=0; i<${#flags}; i++)); do
+                            case "${flags:$i:1}" in
+                                p) opts+=" --pull always" ;;
+                                b) opts+=" --build" ;;
+                                l) show_logs=true ;;
+                            esac
+                        done
+                    fi
                 else
                     services+=("$1")
                 fi
                 shift
             done
+
+            # Use custom file if specified, otherwise use detected compose file
+            if [[ -n "$custom_file" ]]; then
+                if [[ ! -f "$custom_file" ]]; then
+                    echo -e "${CRE}Custom compose file ${CB}$custom_file${CR} not found ❌"
+                    return 1
+                fi
+                compose_file="$custom_file"
+            fi
 
             # Get available services
             local all_services=($(_get_compose_services))
@@ -176,14 +208,15 @@ dc() {
             fi
 
             # Show confirmation with colors
-            echo -e "${COLOR_YELLOW}DOCKER COMPOSE UP${COLOR_RESET}"
-            echo -e "${COLOR_CYAN}Action:${COLOR_RESET} Start Docker Compose services"
+            echo -e "${CB}${CYE}DOCKER COMPOSE UP${CR} 🐳"
+            echo -e "${CCY}Action:${CR} Start Docker Compose services"
+            echo -e "${CCY}Compose file:${CR} ${CB}$compose_file${CR}"
             if [[ -n "$opts" ]]; then
-                echo -e "${COLOR_CYAN}Options:${COLOR_RESET}$opts"
+                echo -e "${CCY}Options:${CR}${CB}$opts${CR}"
             fi
-            echo -e "${COLOR_CYAN}Affected services:${COLOR_RESET} ${COLOR_GREEN}${target_services[*]}${COLOR_RESET}"
+            echo -e "${CCY}Affected services:${CR} ${CB}${CGR}${target_services[*]}${CR}"
             if [[ "$show_logs" == true ]]; then
-                echo -e "${COLOR_CYAN}Additional action:${COLOR_RESET} Show logs after up"
+                echo -e "${CCY}Additional action:${CR} ${CB}Show logs after up${CR}"
             fi
             echo ""
             if _confirm_operation "Continue with operation?"; then
@@ -202,7 +235,7 @@ dc() {
                     fi
                 fi
             else
-                echo -e "${COLOR_YELLOW}Operation cancelled.${COLOR_RESET}"
+                echo -e "${CB}${CYE}Operation cancelled${CR} ⚠️"
                 return 1
             fi
             ;;
@@ -229,16 +262,215 @@ dc() {
         bash)     shift; docker compose -f "$compose_file" exec "$1" bash ;;
 
         # Control de servicios
-        down|d)   shift; docker compose -f "$compose_file" down "$@" ;;
+        down|d)
+            shift
+            local services=()
+            local custom_file=""
+            local opts=""
+
+            # Parse flags and services
+            while [[ $# -gt 0 ]]; do
+                if [[ $1 == "-f" && -n "$2" && $2 != -* ]]; then
+                    # -f followed by filename
+                    custom_file="$2"
+                    shift 2
+                    continue
+                else
+                    if [[ $1 == -* ]]; then
+                        opts+=" $1"
+                    else
+                        services+=("$1")
+                    fi
+                fi
+                shift
+            done
+
+            # Use custom file if specified, otherwise use detected compose file
+            if [[ -n "$custom_file" ]]; then
+                if [[ ! -f "$custom_file" ]]; then
+                    echo -e "${CRE}Custom compose file ${CB}$custom_file${CR} not found ❌"
+                    return 1
+                fi
+                compose_file="$custom_file"
+            fi
+
+            # Get available services for preview
+            local all_services=($(_get_compose_services))
+            local target_services=()
+
+            if [[ ${#services[@]} -eq 0 ]]; then
+                target_services=("${all_services[@]}")
+            else
+                target_services=("${services[@]}")
+            fi
+
+            # Show confirmation with colors
+            echo -e "${CB}${CRE}DOCKER COMPOSE DOWN${CR} 🛑"
+            echo -e "${CCY}Action:${CR} Stop and remove Docker Compose services"
+            echo -e "${CCY}Compose file:${CR} ${CB}$compose_file${CR}"
+            if [[ -n "$opts" ]]; then
+                echo -e "${CCY}Options:${CR}${CB}$opts${CR}"
+            fi
+            echo -e "${CCY}Affected services:${CR} ${CB}${CGR}${target_services[*]}${CR}"
+            echo ""
+            if _confirm_operation "Continue with operation?"; then
+                local cmd="docker compose -f \"$compose_file\" down$opts"
+                if [[ ${#services[@]} -gt 0 ]]; then
+                    cmd+=" ${services[*]}"
+                fi
+                eval "$cmd"
+            else
+                echo -e "${CB}${CYE}Operation cancelled${CR} ⚠️"
+                return 1
+            fi
+            ;;
         start)    shift; docker compose -f "$compose_file" start "$@" ;;
         stop)     shift; docker compose -f "$compose_file" stop "$@" ;;
         restart)  shift; docker compose -f "$compose_file" restart "$@" ;;
 
         # Build y pull
-        build|b)  shift; docker compose -f "$compose_file" build "$@" ;;
+        build|b)
+            shift
+            local services=()
+            local custom_file=""
+            local opts=""
+
+            # Parse flags and services
+            while [[ $# -gt 0 ]]; do
+                if [[ $1 == "-f" && -n "$2" && $2 != -* ]]; then
+                    # -f followed by filename
+                    custom_file="$2"
+                    shift 2
+                    continue
+                else
+                    if [[ $1 == -* ]]; then
+                        opts+=" $1"
+                    else
+                        services+=("$1")
+                    fi
+                fi
+                shift
+            done
+
+            # Use custom file if specified, otherwise use detected compose file
+            if [[ -n "$custom_file" ]]; then
+                if [[ ! -f "$custom_file" ]]; then
+                    echo -e "${CRE}Custom compose file ${CB}$custom_file${CR} not found ❌"
+                    return 1
+                fi
+                compose_file="$custom_file"
+            fi
+
+            # Get available services for preview
+            local all_services=($(_get_compose_services))
+            local target_services=()
+
+            if [[ ${#services[@]} -eq 0 ]]; then
+                target_services=("${all_services[@]}")
+            else
+                target_services=("${services[@]}")
+            fi
+
+            # Show confirmation with colors
+            echo -e "${CB}${CCY}DOCKER COMPOSE BUILD${CR} 🔨"
+            echo -e "${CCY}Action:${CR} Build Docker Compose services"
+            echo -e "${CCY}Compose file:${CR} ${CB}$compose_file${CR}"
+            if [[ -n "$opts" ]]; then
+                echo -e "${CCY}Options:${CR}${CB}$opts${CR}"
+            fi
+            echo -e "${CCY}Affected services:${CR} ${CB}${CGR}${target_services[*]}${CR}"
+            echo ""
+            if _confirm_operation "Continue with operation?"; then
+                local cmd="docker compose -f \"$compose_file\" build$opts"
+                if [[ ${#services[@]} -gt 0 ]]; then
+                    cmd+=" ${services[*]}"
+                fi
+                eval "$cmd"
+            else
+                echo -e "${CB}${CYE}Operation cancelled${CR} ⚠️"
+                return 1
+            fi
+            ;;
         pull)     shift; docker compose -f "$compose_file" pull "$@" ;;
 
+        # Default compose file management
+        default)
+            shift
+            if [[ -z "$1" ]]; then
+                # Show current default
+                if [[ -f ".env" ]] && grep -q "^DOCKER_COMPOSE_FILE=" .env; then
+                    local current_file=$(grep "^DOCKER_COMPOSE_FILE=" .env | cut -d'=' -f2)
+                    echo -e "${CGR}Current default Docker Compose file: ${CB}$current_file${CR} 📋"
+                else
+                    echo -e "${CYE}No default Docker Compose file is currently set${CR} ⚠️"
+                fi
+            elif [[ "$1" == "remove" || "$1" == "rm" ]]; then
+                # Remove default compose file
+                if [[ -f ".env" ]] && grep -q "^DOCKER_COMPOSE_FILE=" .env; then
+                    # Remove the line from .env
+                    sed -i '/^DOCKER_COMPOSE_FILE=/d' .env
+                    echo -e "${CGR}Default Docker Compose file removed${CR} ✅"
+                else
+                    echo -e "${CYE}No default Docker Compose file is currently set${CR} ⚠️"
+                fi
+            else
+                # Set default compose file
+                local file="$1"
+                if [[ ! -f "$file" ]]; then
+                    echo -e "${CRE}File ${CB}$file${CR} does not exist ❌"
+                    return 1
+                fi
+
+                # Add or update DOCKER_COMPOSE_FILE in .env
+                if [[ -f ".env" ]]; then
+                    # Remove existing line if present
+                    sed -i '/^DOCKER_COMPOSE_FILE=/d' .env
+                fi
+                echo "DOCKER_COMPOSE_FILE=$file" >> .env
+                echo -e "${CGR}Default Docker Compose file set to: ${CB}$file${CR} ✅"
+            fi
+            ;;
+
+        # Info command to show configuration
+        info)
+            echo -e "${CB}${CCY}=== DOCKER COMPOSE CONFIGURATION ===${CR}"
+            echo -e "${CCY}Working directory:${CR} ${CB}$(pwd)${CR}"
+
+            # Show compose file being used
+            local compose_file=$(_get_compose_file)
+            if [[ $? -eq 0 ]]; then
+                echo -e "${CCY}Active compose file:${CR} ${CB}${CGR}$compose_file${CR}"
+            else
+                echo -e "${CCY}Active compose file:${CR} ${CRE}None found${CR}"
+            fi
+
+            # Show default setting
+            if [[ -f ".env" ]] && grep -q "^DOCKER_COMPOSE_FILE=" .env; then
+                local default_file=$(grep "^DOCKER_COMPOSE_FILE=" .env | cut -d'=' -f2)
+                echo -e "${CCY}Default setting:${CR} ${CB}DOCKER_COMPOSE_FILE=$default_file${CR}"
+            else
+                echo -e "${CCY}Default setting:${CR} ${CYE}Not configured${CR}"
+            fi
+
+            # Show available compose files
+            echo -e "${CCY}Available compose files:${CR}"
+            local found_files=false
+            for file in docker-compose.yml docker-compose.yaml compose.yml compose.yaml *.yml *.yaml; do
+                if [[ -f "$file" ]]; then
+                    echo -e "  - ${CB}$file${CR}"
+                    found_files=true
+                fi
+            done
+            if [[ "$found_files" == false ]]; then
+                echo -e "  ${CYE}No compose files found${CR}"
+            fi
+            ;;
+
         # Ayuda
+        help|h)   _compose_help ;;
+
+        # Por defecto, pasar comando directo a docker compose
+        *)        docker compose -f "$compose_file" "$@" ;;        # Ayuda
         help|h)   _compose_help ;;
 
         # Por defecto, pasar comando directo a docker compose
@@ -263,34 +495,54 @@ dcup() {
     # Check for compose file first
     local compose_file=$(_get_compose_file)
     if [[ $? -ne 0 ]]; then
-        echo "❌ No compose file found. Expected docker-compose.yml, docker-compose.yaml, or set DOCKER_COMPOSE_FILE environment variable."
+        echo -e "${CRE}No compose file found. Expected ${CB}docker-compose.yml${CR}, ${CB}docker-compose.yaml${CR}, or set ${CB}DOCKER_COMPOSE_FILE${CR} environment variable ❌${CR}"
         return 1
     fi
-
-    # Get available services
-    local all_services=($(_get_compose_services))
-    local target_services=()
 
     # Parse arguments to get specific services
     local services=()
     local opts=""
     local show_logs=false
+    local custom_file=""
 
     for arg in "$@"; do
         if [[ $arg == -* ]]; then
-            local flags="${arg#-}"
-            for ((i=0; i<${#flags}; i++)); do
-                case "${flags:$i:1}" in
-                    p) opts+=" --pull always" ;;
-                    f) opts+=" --force-recreate" ;;
-                    b) opts+=" --build" ;;
-                    l) show_logs=true ;;
-                esac
-            done
+            if [[ $arg == "-f" && -n "$2" && $2 != -* ]]; then
+                # -f followed by filename
+                custom_file="$2"
+                shift 2
+                continue
+            elif [[ $arg == "--force" ]]; then
+                opts+=" --force-recreate"
+                shift
+                continue
+            else
+                local flags="${arg#-}"
+                for ((i=0; i<${#flags}; i++)); do
+                    case "${flags:$i:1}" in
+                        p) opts+=" --pull always" ;;
+                        b) opts+=" --build" ;;
+                        l) show_logs=true ;;
+                    esac
+                done
+            fi
         else
             services+=("$arg")
         fi
     done
+
+    # Use custom file if specified, otherwise use detected compose file
+    if [[ -n "$custom_file" ]]; then
+        if [[ ! -f "$custom_file" ]]; then
+            echo -e "${CRE}Custom compose file ${CB}$custom_file${CR} not found ❌"
+            return 1
+        fi
+        compose_file="$custom_file"
+    fi
+
+    # Get available services
+    local all_services=($(_get_compose_services))
+    local target_services=()
 
     if [[ ${#services[@]} -eq 0 ]]; then
         target_services=("${all_services[@]}")
@@ -299,14 +551,15 @@ dcup() {
     fi
 
     # Show confirmation with colors
-    echo -e "${COLOR_YELLOW}DOCKER COMPOSE UP${COLOR_RESET}"
-    echo -e "${COLOR_CYAN}Action:${COLOR_RESET} Start Docker Compose services"
+    echo -e "${CB}${CYE}DOCKER COMPOSE UP${CR} 🐳"
+    echo -e "${CCY}Action:${CR} Start Docker Compose services"
+    echo -e "${CCY}Compose file:${CR} ${CB}$compose_file${CR}"
     if [[ -n "$opts" ]]; then
-        echo -e "${COLOR_CYAN}Options:${COLOR_RESET}$opts"
+        echo -e "${CCY}Options:${CR}${CB}$opts${CR}"
     fi
-    echo -e "${COLOR_CYAN}Affected services:${COLOR_RESET} ${COLOR_GREEN}${target_services[*]}${COLOR_RESET}"
+    echo -e "${CCY}Affected services:${CR} ${CB}${CGR}${target_services[*]}${CR}"
     if [[ "$show_logs" == true ]]; then
-        echo -e "${COLOR_CYAN}Additional action:${COLOR_RESET} Show logs after up"
+        echo -e "${CCY}Additional action:${CR} ${CB}Show logs after up${CR}"
     fi
     echo ""
     if _confirm_operation "Continue with operation?"; then
@@ -325,7 +578,7 @@ dcup() {
             fi
         fi
     else
-        echo -e "${COLOR_YELLOW}Operation cancelled.${COLOR_RESET}"
+        echo -e "${CB}${CYE}Operation cancelled${CR} ⚠️"
         return 1
     fi
 }
@@ -348,11 +601,11 @@ alias dcx='dc x'
 dq() {
     local container=$(docker ps --format "{{.Names}}" | grep -i "$1" | head -1)
     if [[ -n "$container" ]]; then
-        echo "→ Executing in: $container"
+        echo -e "${CGR}Executing in: ${CB}$container${CR} 🚀"
         shift
         docker exec -it "$container" "$@"
     else
-        echo "❌ No container found matching: $1"
+        echo -e "${CRE}No container found matching: ${CB}$1${CR} ❌"
         return 1
     fi
 }
@@ -361,39 +614,39 @@ dq() {
 dcq() {
     local compose_file=$(_get_compose_file)
     if [[ $? -ne 0 ]]; then
-        echo "❌ No compose file found. Expected docker-compose.yml, docker-compose.yaml, or set DOCKER_COMPOSE_FILE environment variable."
+        echo -e "${CRE}No compose file found. Expected ${CB}docker-compose.yml${CR}, ${CB}docker-compose.yaml${CR}, or set ${CB}DOCKER_COMPOSE_FILE${CR} environment variable ❌${CR}"
         return 1
     fi
 
     local service=$(docker compose -f "$compose_file" ps --services | grep -i "$1" | head -1)
     if [[ -n "$service" ]]; then
-        echo "→ Executing in service: $service"
+        echo -e "${CGR}Executing in service: ${CB}$service${CR} 🚀"
         shift
         docker compose -f "$compose_file" exec "$service" "$@"
     else
-        echo "❌ No service found matching: $1"
+        echo -e "${CRE}No service found matching: ${CB}$1${CR} ❌"
         return 1
     fi
 }
 
 # Function to show quick status
 dstatus() {
-    echo "=== CONTAINERS ==="
+    echo -e "${CB}${CCY}=== CONTAINERS ===${CR}"
     docker ps --format "table {{.Names}}\\t{{.Status}}\\t{{.Ports}}" | docker-color-output
 
     local compose_file=$(_get_compose_file)
     if [[ $? -eq 0 ]]; then
-        echo -e "\n=== COMPOSE SERVICES ==="
+        echo -e "\n${CB}${CCY}=== COMPOSE SERVICES ===${CR}"
         docker compose -f "$compose_file" ps --format "table {{.Service}}\\t{{.Status}}\\t{{.Ports}}" | docker-color-output
     fi
 }
 
 # Function to clean everything at once
 dcleanup() {
-    echo "🧹 Cleaning Docker..."
+    echo -e "${CYE}${CB}Cleaning Docker...${CR} 🧹"
     docker system prune -f
     docker network prune -f
-    echo "✅ Cleanup completed"
+    echo -e "${CGR}${CB}Cleanup completed${CR} ✅"
 }
 
 # ==============================================================
@@ -456,13 +709,13 @@ _dc_completion() {
 
     if [[ ${COMP_CWORD} == 1 ]]; then
         # First arguments - subcommands
-        local commands="up u ul ps p ps1 p1 psp stats s s1 logs l l100 l300 l500 x sh bash down d start stop restart build b pull help h"
+        local commands="up u ul ps p ps1 p1 psp stats s s1 logs l l100 l300 l500 x sh bash down d start stop restart build b pull default info help h"
         COMPREPLY=($(compgen -W "${commands}" -- ${cur}))
     elif [[ "$cur" == -* ]]; then
         # Autocomplete flags for commands that support them
         case "$command" in
-            up|u|ul)
-                local flags="-p -l -f -b"
+            up|u|ul|down|d|build|b)
+                local flags="-p -l -f --force"
                 # Get already used flags to avoid duplicates
                 local used_flags=""
                 for ((i=1; i<COMP_CWORD; i++)); do
@@ -490,6 +743,15 @@ _dc_completion() {
                 if [[ "$prev" != -* ]] || [[ "$has_flags" == true ]]; then
                     local services=$(_get_compose_services)
                     COMPREPLY=($(compgen -W "${services}" -- ${cur}))
+                fi
+                ;;
+            default)
+                # For default command, complete with files and special subcommands
+                if [[ ${COMP_CWORD} == 2 ]]; then
+                    # First argument after 'default' - show files and subcommands
+                    local files=$(ls *.yml *.yaml 2>/dev/null)
+                    local subcommands="remove rm"
+                    COMPREPLY=($(compgen -W "${files} ${subcommands}" -- ${cur}))
                 fi
                 ;;
         esac
@@ -643,15 +905,18 @@ _compose_help() {
 BASIC:
   dc up, dc u          - Start services
   dc up -p            - Up with pull
-  dc up -f            - Up forcing recreation
+  dc up -f FILE       - Up using specific compose file
+  dc up --force       - Up forcing recreation
   dc up -b            - Up with build
   dc ul               - Up + automatic logs
   dc down, dc d        - Stop services
+  dc down -f FILE     - Down using specific compose file
 
 STATUS:
   dc ps, dc p          - List services
   dc ps1, dc p1        - List compact format
   dc psp              - List with ports
+  dc info             - Show compose configuration
 
 LOGS & STATS:
   dc logs, dc l        - Real-time logs
@@ -666,7 +931,13 @@ EXEC:
 CONTROL:
   dc start/stop/restart SERVICE
   dc build, dc b       - Build services
+  dc build -f FILE    - Build using specific compose file
   dc pull             - Pull images
+
+FILE MANAGEMENT:
+  dc default FILE     - Set default compose file
+  dc default          - Show current default
+  dc default remove   - Remove default setting
 
 QUICK:
   dcq PATTERN CMD    - Execute in first matching service
@@ -674,8 +945,10 @@ QUICK:
 Examples:
   dc x api bash      - Bash in 'api' service
   dc ul web          - Up web service + logs
-  dc up -fl          - Up forcing recreation + logs
+  dc up --force -l   - Up forcing recreation + logs
   dc up -pl          - Up with pull + logs
+  dc up -f prod.yml  - Up using prod.yml compose file
+  dc default app.yml - Set app.yml as default compose file
   dcq data psql      - psql in first service containing 'data'
 EOF
 }
@@ -701,7 +974,7 @@ dclt() {
     # Check for compose file first
     local compose_file=$(_get_compose_file)
     if [[ $? -ne 0 ]]; then
-        echo "❌ No compose file found. Expected docker-compose.yml, docker-compose.yaml, or set DOCKER_COMPOSE_FILE environment variable."
+        echo -e "${CRE}No compose file found. Expected ${CB}docker-compose.yml${CR}, ${CB}docker-compose.yaml${CR}, or set ${CB}DOCKER_COMPOSE_FILE${CR} environment variable ❌${CR}"
         return 1
     fi
 
@@ -741,7 +1014,7 @@ dclt() {
     # Get services list
     services=($(_get_compose_services))
     if [[ ${#services[@]} -eq 0 ]]; then
-        echo "❌ No compose services found."
+        echo -e "${CRE}No compose services found ❌"
         return 1
     fi
 
@@ -785,11 +1058,11 @@ dclt() {
     done
 
     if [[ ${#unique_services[@]} -eq 0 ]]; then
-        echo "❌ No services found matching '${patterns[*]}'"
+        echo -e "${CRE}No services found matching: ${CB}'${patterns[*]}'${CR} ❌"
         return 1
     fi
 
-    echo "Services found: ${unique_services[*]}"
+    echo -e "${CGR}Services found: ${CB}${unique_services[*]}${CR} 📋"
     if [[ "$ask_confirm" == true ]]; then
         if ! _confirm_operation "Show logs for these services?"; then
             return 0
@@ -829,7 +1102,7 @@ dcpr() {
     # Check for compose file first
     local compose_file=$(_get_compose_file)
     if [[ $? -ne 0 ]]; then
-        echo "❌ No compose file found. Expected docker-compose.yml, docker-compose.yaml, or set DOCKER_COMPOSE_FILE environment variable."
+        echo -e "${CRE}No compose file found. Expected ${CB}docker-compose.yml${CR}, ${CB}docker-compose.yaml${CR}, or set ${CB}DOCKER_COMPOSE_FILE${CR} environment variable ❌${CR}"
         return 1
     fi
 
