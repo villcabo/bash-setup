@@ -114,8 +114,8 @@ esac
 # bash theme - partly inspired by https://github.com/ohmyzsh/ohmyzsh/blob/master/themes/robbyrussell.zsh-theme
 __bash_prompt() {
   local userpart='`export XIT=$? \
-    && [ "$EUID" -eq 0 ] && echo -n "\[\033[1;31m\]\u\[\033[1;33m\]@\[\033[1;36m\]\h " || \
-    ([ ! -z "${GITHUB_USER:-}" ] && echo -n "\[\033[1;32m\]@${GITHUB_USER:-}\[\033[1;33m\]@\[\033[1;36m\]\h " || echo -n "\[\033[1;32m\]\u\[\033[1;33m\]@\[\033[1;36m\]\h ") \
+    && [ "$EUID" -eq 0 ] && echo -n "\[\033[1;31m\]\u\[\033[1;33m\]@\[\033[1;32m\]\h\[\033[0m\] " || \
+    ([ ! -z "${GITHUB_USER:-}" ] && echo -n "\[\033[1;32m\]@${GITHUB_USER:-}\[\033[1;33m\]@\[\033[1;32m\]\h\[\033[0m\] " || echo -n "\[\033[1;32m\]\u\[\033[1;33m\]@\[\033[1;32m\]\h\[\033[0m\] ") \
     && [ "$XIT" -ne "0" ] && echo -n "\[\033[1;31m\]➜" || echo -n "\[\033[0m\]➜"`'
   local gitbranch='`\
     if [ "$(git config --get devcontainers-theme.hide-status 2>/dev/null)" != 1 ] && [ "$(git config --get codespaces-theme.hide-status 2>/dev/null)" != 1 ]; then \
