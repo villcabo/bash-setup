@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Villcabo Server Setup Manager Installer
-# This script installs the villcabo-server-setup management tool
+# This script installs the markv-setup management tool
 
 # Author: villcabo
 # Repository: https://github.com/villcabo/docker-color-output-install
@@ -31,7 +31,7 @@ else
     mkdir -p "$BIN_DIR"
 fi
 
-MANAGER_SCRIPT="$BIN_DIR/villcabo-server-setup"
+MANAGER_SCRIPT="$BIN_DIR/markv-setup"
 
 # Function to display usage
 usage() {
@@ -39,8 +39,8 @@ usage() {
     echo "Options:"
     echo "  -h, --help       Display this help message"
     echo ""
-    echo "This installer will download and install the villcabo-server-setup management tool."
-    echo "Use 'villcabo-server-setup help' after installation for available commands."
+    echo "This installer will download and install the markv-setup management tool."
+    echo "Use 'markv-setup help' after installation for available commands."
 }
 
 # Parse command-line arguments
@@ -63,12 +63,12 @@ done
 echo -e "${BOLD}Installing Villcabo Server Setup Manager...${NORMAL}"
 
 # Download and install the management script
-echo -e "${BOLD}Downloading villcabo-server-setup...${NORMAL}"
-if wget -q "${GITHUB_RAW_URL}/villcabo-server-setup.sh" -O "$MANAGER_SCRIPT"; then
+echo -e "${BOLD}Downloading markv-setup...${NORMAL}"
+if wget -q "${GITHUB_RAW_URL}/markv-setup.sh" -O "$MANAGER_SCRIPT"; then
     chmod +x "$MANAGER_SCRIPT"
-    echo -e "${GREEN}${BOLD}villcabo-server-setup downloaded and installed successfully${NORMAL}"
+    echo -e "${GREEN}${BOLD}markv-setup downloaded and installed successfully${NORMAL}"
 else
-    echo -e "${RED}${BOLD}Failed to download villcabo-server-setup${NORMAL}"
+    echo -e "${RED}${BOLD}Failed to download markv-setup${NORMAL}"
     exit 1
 fi
 
@@ -92,7 +92,7 @@ fi
 
 echo -e "${GREEN}${BOLD}Installation completed successfully${NORMAL}"
 echo -e "${BOLD}Management tool installed at: ${CYAN}$MANAGER_SCRIPT${NORMAL}"
-echo -e "${BOLD}Usage: ${CYAN}villcabo-server-setup [command]${NORMAL}"
-echo -e "${BOLD}Get started: ${CYAN}villcabo-server-setup help${NORMAL}"
-echo -e "${BOLD}Install docker aliases: ${CYAN}villcabo-server-setup install docker${NORMAL}"
-echo -e "${BOLD}Install bash config: ${CYAN}villcabo-server-setup install bash --type full${NORMAL}"
+echo -e "${BOLD}Usage: ${CYAN}markv-setup [command]${NORMAL}"
+echo -e "${BOLD}Get started: ${CYAN}markv-setup help${NORMAL}"
+echo -e "${BOLD}Install docker aliases: ${CYAN}markv-setup install docker${NORMAL}"
+echo -e "${BOLD}Install bash config: ${CYAN}markv-setup install bash --type full${NORMAL}"

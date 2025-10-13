@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Docker Color Output Installer Script
+# This script installs the Docker Color Output tool
+
 # Color codes for logging
 NORMAL='\033[0m'
 BOLD='\033[1m'
@@ -64,7 +67,7 @@ fi
 if wget -q "$LATEST_URL" -O /usr/local/bin/docker-color-output; then
     # Set permissions
     chmod 755 /usr/local/bin/docker-color-output
-    
+
     echo -e "${GREEN}${BOLD}➔ Docker Color Output installed successfully in ${ITALIC}/usr/local/bin 🚀${NORMAL}"
 
     /usr/local/bin/docker-color-output

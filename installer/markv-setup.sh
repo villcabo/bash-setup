@@ -12,7 +12,7 @@
 # - Status monitoring and clean uninstallation
 #
 # USAGE:
-#   villcabo-server-setup [command] [options]
+#   markv-setup [command] [options]
 #
 # COMMANDS:
 #   status                           - Show installation status for all configurations
@@ -31,12 +31,12 @@
 #   codespace_full - Full GitHub Codespace configuration
 #
 # EXAMPLES:
-#   villcabo-server-setup status                    - Check installation status
-#   villcabo-server-setup install docker           - Install docker aliases
-#   villcabo-server-setup install bash --type full - Install full bash config
-#   villcabo-server-setup bash --type basic        - Install basic bash config
-#   villcabo-server-setup docker                   - Install docker aliases
-#   villcabo-server-setup update                   - Update all configurations
+#   markv-setup status                    - Check installation status
+#   markv-setup install docker           - Install docker aliases
+#   markv-setup install bash --type full - Install full bash config
+#   markv-setup bash --type basic        - Install basic bash config
+#   markv-setup docker                   - Install docker aliases
+#   markv-setup update                   - Update all configurations
 #
 # FILES MANAGED:
 #   ~/.docker_color_settings   - Docker aliases file

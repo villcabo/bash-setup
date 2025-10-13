@@ -4,10 +4,10 @@ A comprehensive server configuration management tool for Docker aliases and Bash
 
 ## 🚀 Quick Installation (Recommended)
 
-Install the **Villcabo Server Setup Manager** with a single command:
+Install the **MarkV Setup Manager** with a single command:
 
 ```bash
-wget -q -O - https://raw.githubusercontent.com/villcabo/docker-color-output-install/main/installer/villcabo-server-setup-installer.sh | bash
+wget -q -O - https://raw.githubusercontent.com/villcabo/docker-color-output-install/main/installer/markv-setup-installer.sh | bash
 ```
 
 ## 📋 Usage
@@ -18,31 +18,31 @@ Once installed, you can use the manager to install and manage both Docker aliase
 
 ```bash
 # Check installation status
-villcabo-server-setup status
+markv-setup status
 
 # Install Docker aliases
-villcabo-server-setup install docker
+markv-setup install docker
 
 # Install Bash configuration (basic)
-villcabo-server-setup install bash --type basic
+markv-setup install bash --type basic
 
 # Install Bash configuration (full-featured)
-villcabo-server-setup install bash --type full
+markv-setup install bash --type full
 
 # Install Bash configuration for GitHub Codespaces
-villcabo-server-setup install bash --type codespace
+markv-setup install bash --type codespace
 
 # Install full Codespace configuration
-villcabo-server-setup install bash --type codespace_full
+markv-setup install bash --type codespace_full
 
 # Update all installed configurations
-villcabo-server-setup update
+markv-setup update
 
 # Remove all configurations
-villcabo-server-setup uninstall
+markv-setup uninstall
 
 # Show help
-villcabo-server-setup help
+markv-setup help
 ```
 
 ### Bash Configuration Types
@@ -60,13 +60,13 @@ Verify everything is working correctly:
 
 ```bash
 # 1. Check if command is available
-which villcabo-server-setup
+which markv-setup
 
 # 2. View version
-villcabo-server-setup version
+markv-setup version
 
 # 3. Check configuration status
-villcabo-server-setup status
+markv-setup status
 
 # 4. Test Docker aliases (after installing)
 docker ps --help | grep "color"
@@ -80,36 +80,36 @@ echo $PS1  # Should show a colorized prompt
 ### Complete Server Setup
 ```bash
 # 1. Install the manager
-wget -q -O - https://raw.githubusercontent.com/villcabo/docker-color-output-install/main/installer/villcabo-server-setup-installer.sh | bash
+wget -q -O - https://raw.githubusercontent.com/villcabo/docker-color-output-install/main/installer/markv-setup-installer.sh | bash
 
 # 2. Install full configuration
-villcabo-server-setup install bash --type full
-villcabo-server-setup install docker
+markv-setup install bash --type full
+markv-setup install docker
 
 # 3. Verify installation
-villcabo-server-setup status
+markv-setup status
 source ~/.bashrc
 ```
 
 ### Docker Aliases Only
 ```bash
-wget -q -O - https://raw.githubusercontent.com/villcabo/docker-color-output-install/main/installer/villcabo-server-setup-installer.sh | bash
-villcabo-server-setup install docker
+wget -q -O - https://raw.githubusercontent.com/villcabo/docker-color-output-install/main/installer/markv-setup-installer.sh | bash
+markv-setup install docker
 source ~/.bashrc
 ```
 
 ### GitHub Codespace Setup
 ```bash
 # Install optimized configuration for Codespaces
-villcabo-server-setup install bash --type codespace_full
-villcabo-server-setup install docker
+markv-setup install bash --type codespace_full
+markv-setup install docker
 source ~/.bashrc
 ```
 
 ## 🛠️ Troubleshooting
 
 ### Command Not Found
-**Problem**: `villcabo-server-setup: command not found`
+**Problem**: `markv-setup: command not found`
 
 **Solution**:
 ```bash
@@ -127,7 +127,7 @@ source ~/.bashrc
 **Solution**:
 ```bash
 # Check installation status
-villcabo-server-setup status
+markv-setup status
 
 # Reload configuration
 source ~/.bash_aliases
@@ -155,7 +155,7 @@ source ~/.zshrc
 
 ### Direct Manual Installation
 
-> **Recommendation**: Use `villcabo-server-setup install bash --type <type>` instead of these manual commands.
+> **Recommendation**: Use `markv-setup install bash --type <type>` instead of these manual commands.
 
 **Basic Configuration**
 
@@ -177,7 +177,7 @@ cp ~/.bashrc ~/.bashrc.backup && wget -q -O ~/.bashrc https://raw.githubusercont
 
 ## Docker Color Output Install (Manual)
 
-> **Recommendation**: Use `villcabo-server-setup install docker` instead of these manual commands.
+> **Recommendation**: Use `markv-setup install docker` instead of these manual commands.
 
 This section provides instructions for manual Docker Color Output installation.
 
@@ -199,19 +199,19 @@ wget -q -O - https://raw.githubusercontent.com/villcabo/docker-color-output/main
 
 ### Manual Alias Configuration
 
-> **Recommendation**: Use `villcabo-server-setup install docker` instead of these manual commands.
+> **Recommendation**: Use `markv-setup install docker` instead of these manual commands.
 
 To manually install alias configurations:
 
 ```bash
-wget -q -O - https://raw.githubusercontent.com/villcabo/docker-color-output-install/main/installer/villcabo-server-setup-installer.sh | bash
+wget -q -O - https://raw.githubusercontent.com/villcabo/docker-color-output-install/main/installer/markv-setup-installer.sh | bash
 ```
 
 **Direct manager installation (alternative):**
 
 ```bash
-wget https://raw.githubusercontent.com/villcabo/docker-color-output-install/main/docker_configuration/villcabo-server-setup.sh -O ~/.local/bin/villcabo-server-setup
-chmod +x ~/.local/bin/villcabo-server-setup
+wget https://raw.githubusercontent.com/villcabo/docker-color-output-install/main/docker_configuration/markv-setup.sh -O ~/.local/bin/markv-setup
+chmod +x ~/.local/bin/markv-setup
 ```
 
 ---
