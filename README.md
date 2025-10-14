@@ -188,13 +188,13 @@ To install Docker Color Output manually, run the following command (requires `ro
 **For Docker versions 28 and above:**
 
 ```bash
-wget -q -O - https://raw.githubusercontent.com/villcabo/docker-color-output/main/docker_configuration/docker-color_installers.sh | bash
+wget -q -O - https://raw.githubusercontent.com/villcabo/docker-color-output/main/installer/docker-color_installers.sh | bash
 ```
 
 **For Docker versions below 28:**
 
 ```bash
-wget -q -O - https://raw.githubusercontent.com/villcabo/docker-color-output/main/docker_configuration/docker-color_installers.sh | bash -s -- -v 2.5.1
+wget -q -O - https://raw.githubusercontent.com/villcabo/docker-color-output/main/installer/docker-color_installers.sh | bash -s -- -v 2.5.1
 ```
 
 ### Manual Alias Configuration
@@ -210,7 +210,7 @@ wget -q -O - https://raw.githubusercontent.com/villcabo/docker-color-output-inst
 **Direct manager installation (alternative):**
 
 ```bash
-wget https://raw.githubusercontent.com/villcabo/docker-color-output-install/main/docker_configuration/markv-setup.sh -O ~/.local/bin/markv-setup
+wget https://raw.githubusercontent.com/villcabo/docker-color-output-install/main/installer/markv-setup.sh -O ~/.local/bin/markv-setup
 chmod +x ~/.local/bin/markv-setup
 ```
 
