@@ -76,9 +76,9 @@ BASH_VERSION_FILE="$HOME/.bash_config_version"
 # Functions
 confirm_operation() {
     local operation="$1"
-    echo -e "${YELLOW}Are you sure you want to $operation? (type 'yes' to confirm): ${NORMAL}"
+    echo -ne "${YELLOW}Are you sure you want to $operation? ${GREEN}yes${NORMAL}/${RED}No${NORMAL}: "
     read -r response
-    if [[ "$response" != "yes" ]]; then
+    if [[ "${response,,}" != "yes" ]]; then
         echo -e "${RED}Operation cancelled${NORMAL}"
         return 1
     fi
