@@ -16,10 +16,11 @@
 #
 # COMMANDS:
 #   status                           - Show installation status for all configurations
-#   install <docker|bash> [--type]  - Install specific component (type required for bash)
+#   install <docker|bash|docker-color> - Install specific component (type required for bash)
 #   update                           - Update all installed configurations
 #   uninstall                        - Remove all files and configurations
 #   docker                           - Install/update docker aliases only
+#   docker-color [version]           - Install/update docker-color-output binary
 #   bash --type <type>               - Install/update bash config (type required)
 #   version                          - Show manager version
 #   help                             - Display help information
@@ -33,9 +34,12 @@
 # EXAMPLES:
 #   markv-setup status                    - Check installation status
 #   markv-setup install docker           - Install docker aliases
+#   markv-setup install docker-color     - Install docker-color-output binary
 #   markv-setup install bash --type full - Install full bash config
 #   markv-setup bash --type basic        - Install basic bash config
 #   markv-setup docker                   - Install docker aliases
+#   markv-setup docker-color             - Install docker-color-output binary
+#   markv-setup docker-color 2.5.1       - Install specific version
 #   markv-setup update                   - Update all configurations
 #
 # FILES MANAGED:
@@ -92,10 +96,11 @@ show_help() {
     echo ""
     echo "Commands:"
     echo -e "  ${CYAN}status${NORMAL}                           Show installation status for all configurations"
-    echo -e "  ${CYAN}install${NORMAL} <docker|bash> [--type]  Install specific component (type required for bash)"
+    echo -e "  ${CYAN}install${NORMAL} <docker|bash|docker-color> Install specific component (type required for bash)"
     echo -e "  ${CYAN}update${NORMAL}                           Update all installed configurations"
     echo -e "  ${CYAN}uninstall${NORMAL}                        Remove all files and configurations"
     echo -e "  ${CYAN}docker${NORMAL}                           Install/update docker aliases only"
+    echo -e "  ${CYAN}docker-color${NORMAL} [version]           Install/update docker-color-output binary"
     echo -e "  ${CYAN}bash${NORMAL} --type <type>               Install/update bash config (type required)"
     echo -e "  ${CYAN}version${NORMAL}                          Show manager version"
     echo -e "  ${CYAN}help${NORMAL}                             Show this help message"
@@ -109,9 +114,12 @@ show_help() {
     echo "Examples:"
     echo -e "  $(basename "$0") ${CYAN}status${NORMAL}                    Check installation status"
     echo -e "  $(basename "$0") ${CYAN}install docker${NORMAL}           Install docker aliases"
+    echo -e "  $(basename "$0") ${CYAN}install docker-color${NORMAL}     Install docker-color-output binary"
     echo -e "  $(basename "$0") ${CYAN}install bash --type full${NORMAL} Install full bash config"
     echo -e "  $(basename "$0") ${CYAN}bash --type basic${NORMAL}        Install basic bash config"
     echo -e "  $(basename "$0") ${CYAN}docker${NORMAL}                   Install docker aliases"
+    echo -e "  $(basename "$0") ${CYAN}docker-color${NORMAL}             Install docker-color-output binary"
+    echo -e "  $(basename "$0") ${CYAN}docker-color 2.5.1${NORMAL}       Install specific version"
     echo -e "  $(basename "$0") ${CYAN}update${NORMAL}                   Update all configurations"
 }
 
@@ -212,6 +220,38 @@ update_bash_config() {
 
     echo -e "${BOLD}Updating Bash Configuration (${bash_type})...${NORMAL}"
     install_bash_config "$bash_type"
+}
+
+install_docker_color() {
+    local version="${1:-latest}"
+
+    if ! confirm_operation "install Docker Color Output (${version})"; then
+        return 1
+    fi
+
+    echo -e "${BOLD}Installing Docker Color Output (${version})...${NORMAL}"
+
+    # Check if user has sudo privileges for system installation
+    if [[ $EUID -eq 0 ]] || sudo -n true 2>/dev/null; then
+        # Use the existing installer script with version parameter
+        local installer_url="${DOCKER_REMOTE_BASE_URL}/../installer/docker-color_installers.sh"
+        if [[ "$version" == "latest" ]]; then
+            wget -q -O - "$installer_url" | sudo bash
+        else
+            wget -q -O - "$installer_url" | sudo bash -s -- -v "$version"
+        fi
+
+        if [[ $? -eq 0 ]]; then
+            echo -e "${GREEN}${BOLD}Docker Color Output (${version}) installed successfully${NORMAL}"
+        else
+            echo -e "${RED}${BOLD}Docker Color Output installation failed${NORMAL}"
+            return 1
+        fi
+    else
+        echo -e "${RED}${BOLD}Error: Docker Color Output installation requires root privileges${NORMAL}"
+        echo -e "${YELLOW}Please run with sudo or as root user${NORMAL}"
+        return 1
+    fi
 }
 
 get_remote_version() {
@@ -323,6 +363,22 @@ show_status() {
         echo -e "Bash Config File: ${GREEN}Installed${NORMAL} (${BASH_CONFIG_FILE})"
     else
         echo -e "Bash Config File: ${RED}Not found${NORMAL}"
+    fi
+
+    echo ""
+    echo ""
+
+    # Docker Color Output Status
+    echo -e "${BOLD}=== Docker Color Output Binary ===${NORMAL}"
+    if command -v docker-color-output >/dev/null 2>&1; then
+        local docker_color_version=$(docker-color-output --version 2>/dev/null | head -1 || echo "Unknown version")
+        local docker_color_path=$(which docker-color-output)
+        echo -e "Status: ${GREEN}Installed${NORMAL}"
+        echo -e "Version: ${CYAN}$docker_color_version${NORMAL}"
+        echo -e "Location: ${CYAN}$docker_color_path${NORMAL}"
+    else
+        echo -e "Status: ${RED}Not installed${NORMAL}"
+        echo -e "Note: Use '$(basename "$0") install docker-color' to install"
     fi
 }
 
@@ -505,6 +561,9 @@ case "${1:-status}" in
             docker)
                 install_aliases
                 ;;
+            docker-color)
+                install_docker_color "$3"
+                ;;
             bash)
                 if [[ "$3" == "--type" && -n "$4" ]]; then
                     install_bash_config "$4"
@@ -517,22 +576,26 @@ case "${1:-status}" in
                 ;;
             "")
                 echo -e "${RED}Error: Missing required parameter${NORMAL}"
-                echo -e "Usage: $(basename "$0") install <docker|bash> [--type <type>]"
+                echo -e "Usage: $(basename "$0") install <docker|bash|docker-color> [options]"
                 echo -e "Examples:"
                 echo -e "  $(basename "$0") install docker"
+                echo -e "  $(basename "$0") install docker-color"
                 echo -e "  $(basename "$0") install bash --type full"
                 echo -e "  $(basename "$0") install bash --type codespace_full"
                 exit 1
                 ;;
             *)
                 echo -e "${RED}Error: Invalid component '${2}'${NORMAL}"
-                echo -e "Available components: ${CYAN}docker${NORMAL}, ${CYAN}bash${NORMAL}"
+                echo -e "Available components: ${CYAN}docker${NORMAL}, ${CYAN}bash${NORMAL}, ${CYAN}docker-color${NORMAL}"
                 exit 1
                 ;;
         esac
         ;;
     docker)
         install_aliases
+        ;;
+    docker-color)
+        install_docker_color "$2"
         ;;
     bash)
         if [[ "$2" == "--type" && -n "$3" ]]; then
@@ -551,7 +614,7 @@ case "${1:-status}" in
         uninstall_aliases
         ;;
     version|ver|v)
-        echo "Villcabo Server Setup Manager v2.0"
+        echo "MarkV Setup Manager v2.0"
         ;;
     help|h|--help|-h)
         show_help
