@@ -521,6 +521,7 @@ case "${1:-status}" in
                 echo -e "Examples:"
                 echo -e "  $(basename "$0") install docker"
                 echo -e "  $(basename "$0") install bash --type full"
+                echo -e "  $(basename "$0") install bash --type codespace_full"
                 exit 1
                 ;;
             *)

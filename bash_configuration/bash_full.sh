@@ -91,8 +91,8 @@ if [ -d "$HOME/bin" ]; then
 fi
 
 # Load custom aliases if the file exists
-if [ -f ~/.bash_aliases ]; then
-  . ~/.bash_aliases
+if [ -f $HOME/.bash_aliases ]; then
+  . $HOME/.bash_aliases
 fi
 
 # Set default editor
@@ -247,7 +247,6 @@ system_info() {
 # Alias for system_info
 alias sinfo=system_info
 alias osinfo=system_info
-
 
 # Help function - Shows all features and capabilities of this bashrc
 bashrc_help() {

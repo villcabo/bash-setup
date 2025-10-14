@@ -178,7 +178,6 @@ if [ -x /usr/bin/dircolors ]; then
 	alias egrepn='egrep --color=never'
 fi
 
-
 # Add bin directories to PATH if they exist
 if [ -d "$HOME/.local/bin" ]; then
   PATH="$HOME/.local/bin:$PATH"
