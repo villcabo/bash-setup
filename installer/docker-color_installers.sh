@@ -36,6 +36,7 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 RED='\033[0;31m'
 BLUE='\033[0;34m'
+CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
 # Function to display usage
@@ -50,7 +51,7 @@ usage() {
     echo ""
     echo "Examples:"
     echo -e "  $(basename "$0")                   Install latest version"
-    echo -e "  $(basename "$0") ${CYAN}-v 2.5.1${NORMAL}         Install version 2.5.1"
+    echo -e "  $(basename "$0") ${CYAN}-v 2.5.1${NORMAL}          Install version 2.5.1"
     echo ""
     echo "Requirements:"
     echo -e "  ${YELLOW}• Root privileges (sudo)${NORMAL}"
@@ -130,12 +131,14 @@ if wget -q "$LATEST_URL" -O /usr/local/bin/docker-color-output; then
     # Verify installation
     echo -e "${BOLD}Step 4: Verifying installation...${NORMAL}"
     if command -v docker-color-output >/dev/null 2>&1; then
-        local version_info=$(docker-color-output --version 2>/dev/null | head -1 || echo "Version information not available")
+        # Get version info from the binary
+        version_info=$(timeout 2s docker-color-output --help 2>&1 | grep "💥 Version:" | cut -d' ' -f3 2>/dev/null || echo "Unknown")
         echo -e "${GREEN}${BOLD}Installation completed successfully!${NORMAL}"
         echo -e "${CYAN}Location: /usr/local/bin/docker-color-output${NORMAL}"
         echo -e "${CYAN}Version: ${version_info}${NORMAL}"
         echo ""
         echo -e "${YELLOW}You can now use 'docker-color-output' command or set it as Docker alias${NORMAL}"
+        echo -e "${BLUE}Example: docker ps | docker-color-output${NORMAL}"
     else
         echo -e "${RED}Installation verification failed${NORMAL}"
         exit 1
