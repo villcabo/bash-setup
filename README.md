@@ -316,7 +316,7 @@ If you encounter any issues or have questions, please open an issue on GitHub.
   </a>
   <br/>
   <a href="https://github.com/villcabo/bash-setup">
-    <img src="https://img.shields.io/badge/Repository-bash--setup---green?style=flat-square&logo=github" alt="Repository">
+    <img src="https://img.shields.io/badge/Repository-bash--setup-green?style=flat-square&logo=github" alt="Repository">
   </a>
 </div>
 
