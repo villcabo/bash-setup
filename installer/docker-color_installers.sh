@@ -7,7 +7,7 @@
 # This script installs the Docker Color Output binary tool
 #
 # AUTHOR: villcabo
-# REPOSITORY: https://github.com/villcabo/docker-color-output-install
+# REPOSITORY: https://github.com/villcabo/bash-setup
 #
 # USAGE:
 #   ./docker-color_installers.sh [options]

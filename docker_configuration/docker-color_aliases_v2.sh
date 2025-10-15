@@ -47,7 +47,7 @@
 #   - bash completion support
 #
 # AUTHOR: villcabo
-# REPOSITORY: https://github.com/villcabo/docker-color-output-install
+# REPOSITORY: https://github.com/villcabo/bash-setup
 # ==============================================================
 
 # Color variables

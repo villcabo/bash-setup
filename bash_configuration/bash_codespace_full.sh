@@ -4,7 +4,7 @@
 # ==============================================================
 #
 # AUTHOR: villcabo
-# REPOSITORY: https://github.com/villcabo/docker-color-output-install
+# REPOSITORY: https://github.com/villcabo/bash-setup
 # VERSION: 1.0
 # CREATED: October 2025
 #
@@ -42,11 +42,11 @@
 #
 # INSTALLATION:
 # Download the latest version from GitHub repository:
-# wget https://raw.githubusercontent.com/villcabo/docker-color-output-install/main/bash_configuration/bash_codespace_full.sh -O ~/.bashrc
+# wget https://raw.githubusercontent.com/villcabo/bash-setup/main/bash_configuration/bash_codespace_full.sh -O ~/.bashrc
 # source ~/.bashrc
 #
 # Alternative installation using dcsimpleinstaller:
-# wget https://raw.githubusercontent.com/villcabo/docker-color-output-install/main/docker_configuration/dcsimpleinstaller.sh
+# wget https://raw.githubusercontent.com/villcabo/bash-setup/main/docker_configuration/dcsimpleinstaller.sh
 # chmod +x dcsimpleinstaller.sh
 # ./dcsimpleinstaller.sh install
 #
@@ -361,7 +361,7 @@ bashrc_help() {
   echo -e "${BOLD}${BLUE}===============================================${RESET}"
   echo ""
   echo -e "${BOLD}${CYAN}AUTHOR:${RESET} villcabo"
-  echo -e "${BOLD}${CYAN}REPO:${RESET} github.com/villcabo/docker-color-output-install"
+  echo -e "${BOLD}${CYAN}REPO:${RESET} github.com/villcabo/bash-setup"
   echo ""
 
   echo -e "${BOLD}${YELLOW}🎨 PROMPT FEATURES:${RESET}"
@@ -452,10 +452,10 @@ bashrc_help() {
 
   echo -e "${BOLD}${YELLOW}📥 INSTALLATION:${RESET}"
   echo -e "  ${GREEN}Direct download:${RESET}"
-  echo -e "    ${CYAN}wget https://raw.githubusercontent.com/villcabo/docker-color-output-install/main/bash_configuration/bash_codespace_full.sh -O ~/.bashrc${RESET}"
+  echo -e "    ${CYAN}wget https://raw.githubusercontent.com/villcabo/bash-setup/main/bash_configuration/bash_codespace_full.sh -O ~/.bashrc${RESET}"
   echo -e "    ${CYAN}source ~/.bashrc${RESET}"
   echo -e "  ${GREEN}Using installer:${RESET}"
-  echo -e "    ${CYAN}wget https://raw.githubusercontent.com/villcabo/docker-color-output-install/main/docker_configuration/dcsimpleinstaller.sh${RESET}"
+  echo -e "    ${CYAN}wget https://raw.githubusercontent.com/villcabo/bash-setup/main/docker_configuration/dcsimpleinstaller.sh${RESET}"
   echo -e "    ${CYAN}chmod +x dcsimpleinstaller.sh && ./dcsimpleinstaller.sh install${RESET}"
   echo ""
 

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # ==============================================================
-# Villcabo Server Setup Manager
+# MarckV Setup Manager
 # ==============================================================
 #
 # Complete server configuration management tool
@@ -12,7 +12,7 @@
 # - Status monitoring and clean uninstallation
 #
 # USAGE:
-#   markv-setup [command] [options]
+#   marckv-setup [command] [options]
 #
 # COMMANDS:
 #   status                           - Show installation status for all configurations
@@ -32,15 +32,15 @@
 #   codespace_full - Full GitHub Codespace configuration
 #
 # EXAMPLES:
-#   markv-setup status                    - Check installation status
-#   markv-setup install docker           - Install docker aliases
-#   markv-setup install docker-color     - Install docker-color-output binary
-#   markv-setup install bash --type full - Install full bash config
-#   markv-setup bash --type basic        - Install basic bash config
-#   markv-setup docker                   - Install docker aliases
-#   markv-setup docker-color             - Install docker-color-output binary
-#   markv-setup docker-color 2.5.1       - Install specific version
-#   markv-setup update                   - Update all configurations
+#   marckv-setup status                    - Check installation status
+#   marckv-setup install docker           - Install docker aliases
+#   marckv-setup install docker-color     - Install docker-color-output binary
+#   marckv-setup install bash --type full - Install full bash config
+#   marckv-setup bash --type basic        - Install basic bash config
+#   marckv-setup docker                   - Install docker aliases
+#   marckv-setup docker-color             - Install docker-color-output binary
+#   marckv-setup docker-color 2.5.1       - Install specific version
+#   marckv-setup update                   - Update all configurations
 #
 # FILES MANAGED:
 #   ~/.docker_color_settings   - Docker aliases file
@@ -51,7 +51,7 @@
 #   ~/.zshrc                   - Zsh configuration (if exists)
 #
 # AUTHOR: villcabo
-# REPOSITORY: https://github.com/villcabo/docker-color-output-install
+# REPOSITORY: https://github.com/villcabo/bash-setup
 # ==============================================================
 
 # Color codes
@@ -65,7 +65,7 @@ CYAN='\033[0;36m'
 
 # Configuration
 REPO_OWNER="villcabo"
-REPO_NAME="docker-color-output-install"
+REPO_NAME="bash-setup"
 
 # Docker configuration
 LOCAL_FILE="$HOME/.docker_color_settings"
@@ -90,7 +90,7 @@ confirm_operation() {
 }
 
 show_help() {
-    echo -e "${BOLD}Villcabo Server Setup Manager${NORMAL}"
+    echo -e "${BOLD}MarckV Setup Manager${NORMAL}"
     echo ""
     echo "Usage: $(basename "$0") [COMMAND] [OPTIONS]"
     echo ""
@@ -295,7 +295,7 @@ show_status() {
     local remote_ver=$(get_remote_version)
     local bash_local_ver=$(get_bash_local_version)
 
-    echo -e "${BOLD}Villcabo Server Setup Status${NORMAL}"
+    echo -e "${BOLD}MarckV Setup Status${NORMAL}"
     echo ""
 
     # Docker Aliases Status
@@ -614,7 +614,7 @@ case "${1:-status}" in
         uninstall_aliases
         ;;
     version|ver|v)
-        echo "MarkV Setup Manager v2.0"
+        echo "MarckV Setup Manager v2.0"
         ;;
     help|h|--help|-h)
         show_help

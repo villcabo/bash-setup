@@ -7,7 +7,7 @@ A comprehensive server configuration management tool for Docker aliases and Bash
 Install the **MarkV Setup Manager** with a single command:
 
 ```bash
-wget -q -O - https://raw.githubusercontent.com/villcabo/docker-color-output-install/main/installer/markv-setup-installer.sh | bash
+wget -q -O - https://raw.githubusercontent.com/villcabo/bash-setup/main/installer/markv-setup-installer.sh | bash
 ```
 
 ## 📋 Usage
@@ -80,7 +80,7 @@ echo $PS1  # Should show a colorized prompt
 ### Complete Server Setup
 ```bash
 # 1. Install the manager
-wget -q -O - https://raw.githubusercontent.com/villcabo/docker-color-output-install/main/installer/markv-setup-installer.sh | bash
+wget -q -O - https://raw.githubusercontent.com/villcabo/bash-setup/main/installer/markv-setup-installer.sh | bash
 
 # 2. Install full configuration
 markv-setup install bash --type full
@@ -93,7 +93,7 @@ source ~/.bashrc
 
 ### Docker Aliases Only
 ```bash
-wget -q -O - https://raw.githubusercontent.com/villcabo/docker-color-output-install/main/installer/markv-setup-installer.sh | bash
+wget -q -O - https://raw.githubusercontent.com/villcabo/bash-setup/main/installer/markv-setup-installer.sh | bash
 markv-setup install docker
 source ~/.bashrc
 ```
@@ -160,19 +160,19 @@ source ~/.zshrc
 **Basic Configuration**
 
 ```bash
-cp ~/.bashrc ~/.bashrc.backup && wget -q -O ~/.bashrc https://raw.githubusercontent.com/villcabo/docker-color-output-install/main/bash_configuration/bash_basic.sh && source ~/.bashrc
+cp ~/.bashrc ~/.bashrc.backup && wget -q -O ~/.bashrc https://raw.githubusercontent.com/villcabo/bash-setup/main/bash_configuration/bash_basic.sh && source ~/.bashrc
 ```
 
 **Full Configuration**
 
 ```bash
-cp ~/.bashrc ~/.bashrc.backup && wget -q -O ~/.bashrc https://raw.githubusercontent.com/villcabo/docker-color-output-install/main/bash_configuration/bash_full.sh && source ~/.bashrc
+cp ~/.bashrc ~/.bashrc.backup && wget -q -O ~/.bashrc https://raw.githubusercontent.com/villcabo/bash-setup/main/bash_configuration/bash_full.sh && source ~/.bashrc
 ```
 
 **Codespace Full Configuration**
 
 ```bash
-cp ~/.bashrc ~/.bashrc.backup && wget -q -O ~/.bashrc https://raw.githubusercontent.com/villcabo/docker-color-output-install/main/bash_configuration/bash_codespace_full.sh && source ~/.bashrc
+cp ~/.bashrc ~/.bashrc.backup && wget -q -O ~/.bashrc https://raw.githubusercontent.com/villcabo/bash-setup/main/bash_configuration/bash_codespace_full.sh && source ~/.bashrc
 ```
 
 ## Docker Color Output Install (Manual)
@@ -204,13 +204,13 @@ wget -q -O - https://raw.githubusercontent.com/villcabo/docker-color-output/main
 To manually install alias configurations:
 
 ```bash
-wget -q -O - https://raw.githubusercontent.com/villcabo/docker-color-output-install/main/installer/markv-setup-installer.sh | bash
+wget -q -O - https://raw.githubusercontent.com/villcabo/bash-setup/main/installer/markv-setup-installer.sh | bash
 ```
 
 **Direct manager installation (alternative):**
 
 ```bash
-wget https://raw.githubusercontent.com/villcabo/docker-color-output-install/main/installer/markv-setup.sh -O ~/.local/bin/markv-setup
+wget https://raw.githubusercontent.com/villcabo/bash-setup/main/installer/markv-setup.sh -O ~/.local/bin/markv-setup
 chmod +x ~/.local/bin/markv-setup
 ```
 
@@ -223,7 +223,7 @@ chmod +x ~/.local/bin/markv-setup
 Install **TMUX** configuration:
 
 ```bash
-wget -q https://raw.githubusercontent.com/villcabo/docker-color-output-install/main/tmux_configuration/tmux.conf -O ~/.tmux.conf
+wget -q https://raw.githubusercontent.com/villcabo/bash-setup/main/tmux_configuration/tmux.conf -O ~/.tmux.conf
 ```
 
 ### Tmux Plugin Manager (TPM)
@@ -235,7 +235,7 @@ git clone https://github.com/tmux-plugins/tpm ~/.tmux/plugins/tpm
 **All in one command:**
 
 ```bash
-wget -q https://raw.githubusercontent.com/villcabo/docker-color-output-install/main/tmux_configuration/tmux.conf -O ~/.tmux.conf && git clone https://github.com/tmux-plugins/tpm ~/.tmux/plugins/tpm
+wget -q https://raw.githubusercontent.com/villcabo/bash-setup/main/tmux_configuration/tmux.conf -O ~/.tmux.conf && git clone https://github.com/tmux-plugins/tpm ~/.tmux/plugins/tpm
 ```
 
 To reload the configuration, start **tmux** and press **Ctrl + A Shift + I**
@@ -315,8 +315,8 @@ If you encounter any issues or have questions, please open an issue on GitHub.
     <img src="https://img.shields.io/badge/GitHub-villcabo-blue?style=flat-square&logo=github" alt="GitHub Profile">
   </a>
   <br/>
-  <a href="https://github.com/villcabo/docker-color-output-install">
-    <img src="https://img.shields.io/badge/Repository-docker--color--output--install-green?style=flat-square&logo=github" alt="Repository">
+  <a href="https://github.com/villcabo/bash-setup">
+    <img src="https://img.shields.io/badge/Repository-bash--setup---green?style=flat-square&logo=github" alt="Repository">
   </a>
 </div>
 
