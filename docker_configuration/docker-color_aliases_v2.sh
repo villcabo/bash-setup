@@ -29,7 +29,7 @@
 #   d ps            - List running containers
 #   dc up -pl       - Start services with pull and logs
 #   dc up -f compose.prod.yml  - Start services using specific compose file
-#   dc up --force   - Start services with force recreate
+#   dc up -r        - Start services with force recreate
 #   dc down -f compose.dev.yml - Stop services using specific compose file
 #   dc build -f compose.test.yml - Build services using specific compose file
 #   dc default compose.yml      - Set default compose file
@@ -177,14 +177,11 @@ dc() {
                         custom_file="$2"
                         shift 2
                         continue
-                    elif [[ $1 == "--force" ]]; then
-                        opts+=" --force-recreate"
-                        shift
-                        continue
                     else
                         local flags="${1#-}"
                         for ((i=0; i<${#flags}; i++)); do
                             case "${flags:$i:1}" in
+                                r) opts+=" --force-recreate" ;;
                                 p) opts+=" --pull always" ;;
                                 b) opts+=" --build" ;;
                                 l) show_logs=true ;;
@@ -521,14 +518,11 @@ dcup() {
                 custom_file="$2"
                 shift 2
                 continue
-            elif [[ $arg == "--force" ]]; then
-                opts+=" --force-recreate"
-                shift
-                continue
             else
                 local flags="${arg#-}"
                 for ((i=0; i<${#flags}; i++)); do
                     case "${flags:$i:1}" in
+                        r) opts+=" --force-recreate" ;;
                         p) opts+=" --pull always" ;;
                         b) opts+=" --build" ;;
                         l) show_logs=true ;;
@@ -736,7 +730,7 @@ _dc_completion() {
         # Autocomplete flags for commands that support them
         case "$command" in
             up|u|ul|down|d|build|b)
-                local flags="-p -l -f -b --force"
+                local flags="-p -l -f -b -r"
                 # Get already used flags to avoid duplicates
                 local used_flags=""
                 for ((i=1; i<COMP_CWORD; i++)); do
@@ -847,7 +841,7 @@ _dcup_completion() {
 
     if [[ "$cur" == -* ]]; then
         # Autocomplete flags for up
-        local flags="-p -l -f -b --force"
+    local flags="-p -l -f -b -r"
         local used_flags=""
         for ((i=1; i<COMP_CWORD; i++)); do
             if [[ "${COMP_WORDS[i]}" == -* && "${COMP_WORDS[i]}" != "-f" ]]; then
@@ -936,28 +930,28 @@ _compose_help() {
 🐙 Docker Compose Helper (dc)
 
 BASIC:
-  dc up, dc u          - Start services
-  dc up -p            - Up with pull (--pull always)
-  dc up -f FILE       - Up using specific compose file
-  dc up --force       - Up forcing recreation (--force-recreate)
-  dc up -b            - Up with build (--build)
-  dc up -l            - Up + automatic logs
-  dc ul               - Up + automatic logs
-  dc down, dc d        - Stop services
-  dc down -f FILE     - Down using specific compose file
+    dc up, dc u          - Start services
+    dc up -p            - Up with pull (--pull always)
+    dc up -f FILE       - Up using specific compose file
+    dc up -r            - Up forcing recreation (--force-recreate)
+    dc up -b            - Up with build (--build)
+    dc up -l            - Up + automatic logs
+    dc ul               - Up + automatic logs
+    dc down, dc d        - Stop services
+    dc down -f FILE     - Down using specific compose file
 
 FLAGS (can be combined):
-  -f FILE            - Use specific compose file
-  -p                 - Pull images before up (--pull always)
-  -b                 - Build before up (--build)
-  -l                 - Show logs after up
-  --force            - Force recreate containers (--force-recreate)
+    -f FILE            - Use specific compose file
+    -p                 - Pull images before up (--pull always)
+    -b                 - Build before up (--build)
+    -l                 - Show logs after up
+    -r                 - Force recreate containers (--force-recreate)
 
 FLAG EXAMPLES:
-  dc up -pbl         - Pull + build + logs
-  dc up -f app.yml -pl - Use app.yml with pull + logs
-  dc up --force -l   - Force recreate + logs
-  dcup -f prod.yml -pb - Use dcup with prod.yml + pull + build
+    dc up -pbl         - Pull + build + logs
+    dc up -f app.yml -pl - Use app.yml with pull + logs
+    dc up -rl          - Force recreate + logs
+    dcup -f prod.yml -pb - Use dcup with prod.yml + pull + build
 
 STATUS:
   dc ps, dc p          - List services
@@ -990,19 +984,19 @@ QUICK:
   dcq PATTERN CMD    - Execute in first matching service
 
 Examples:
-  dc x api bash      - Bash in 'api' service
-  dc ul web          - Up web service + logs
-  dc up --force -l   - Up forcing recreation + logs
-  dc up -pl          - Up with pull + logs
-  dc up -f prod.yml  - Up using prod.yml compose file
-  dc default app.yml - Set app.yml as default compose file
-  dcq data psql      - psql in first service containing 'data'
+    dc x api bash      - Bash in 'api' service
+    dc ul web          - Up web service + logs
+    dc up -rl          - Up forcing recreation + logs
+    dc up -pl          - Up with pull + logs
+    dc up -f prod.yml  - Up using prod.yml compose file
+    dc default app.yml - Set app.yml as default compose file
+    dcq data psql      - psql in first service containing 'data'
 
 AUTOCOMPLETION:
-  dc -f <TAB>        - Shows available .yml/.yaml files
-  dc -f app.yml -<TAB> - Shows available flags (-p, -l, -b, --force)
-  dc up <TAB>        - Shows available services
-  dcup -f <TAB>      - Shows available compose files
+    dc -f <TAB>        - Shows available .yml/.yaml files
+    dc -f app.yml -<TAB> - Shows available flags (-p, -l, -b, -r)
+    dc up <TAB>        - Shows available services
+    dcup -f <TAB>      - Shows available compose files
 EOF
 }
 
