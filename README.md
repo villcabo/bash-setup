@@ -4,10 +4,10 @@ A comprehensive server configuration management tool for Docker aliases and Bash
 
 ## 🚀 Quick Installation (Recommended)
 
-Install the **MarkV Setup Manager** with a single command:
+Install the **MarckV Setup Manager** with a single command:
 
 ```bash
-wget -q -O - https://raw.githubusercontent.com/villcabo/bash-setup/main/installer/markv-setup-installer.sh | bash
+wget -q -O - https://raw.githubusercontent.com/villcabo/bash-setup/main/installer/marckv-setup-installer.sh | bash
 ```
 
 ## 📋 Usage
@@ -18,31 +18,31 @@ Once installed, you can use the manager to install and manage both Docker aliase
 
 ```bash
 # Check installation status
-markv-setup status
+marckv-setup status
 
 # Install Docker aliases
-markv-setup install docker
+marckv-setup install docker
 
 # Install Bash configuration (basic)
-markv-setup install bash --type basic
+marckv-setup install bash --type basic
 
 # Install Bash configuration (full-featured)
-markv-setup install bash --type full
+marckv-setup install bash --type full
 
 # Install Bash configuration for GitHub Codespaces
-markv-setup install bash --type codespace
+marckv-setup install bash --type codespace
 
 # Install full Codespace configuration
-markv-setup install bash --type codespace_full
+marckv-setup install bash --type codespace_full
 
 # Update all installed configurations
-markv-setup update
+marckv-setup update
 
 # Remove all configurations
-markv-setup uninstall
+marckv-setup uninstall
 
 # Show help
-markv-setup help
+marckv-setup help
 ```
 
 ### Bash Configuration Types
@@ -60,13 +60,13 @@ Verify everything is working correctly:
 
 ```bash
 # 1. Check if command is available
-which markv-setup
+which marckv-setup
 
 # 2. View version
-markv-setup version
+marckv-setup version
 
 # 3. Check configuration status
-markv-setup status
+marckv-setup status
 
 # 4. Test Docker aliases (after installing)
 docker ps --help | grep "color"
@@ -80,28 +80,28 @@ echo $PS1  # Should show a colorized prompt
 ### Complete Server Setup
 ```bash
 # 1. Install the manager
-wget -q -O - https://raw.githubusercontent.com/villcabo/bash-setup/main/installer/markv-setup-installer.sh | bash
+wget -q -O - https://raw.githubusercontent.com/villcabo/bash-setup/main/installer/marckv-setup-installer.sh | bash
 
 # 2. Install full configuration
-markv-setup install bash --type full
-markv-setup install docker
+marckv-setup install bash --type full
+marckv-setup install docker
 
 # 3. Verify installation
-markv-setup status
+marckv-setup status
 source ~/.bashrc
 ```
 
 ### Docker Aliases Only
 ```bash
-wget -q -O - https://raw.githubusercontent.com/villcabo/bash-setup/main/installer/markv-setup-installer.sh | bash
-markv-setup install docker
+wget -q -O - https://raw.githubusercontent.com/villcabo/bash-setup/main/installer/marckv-setup-installer.sh | bash
+marckv-setup install docker
 source ~/.bashrc
 ```
 
 ### GitHub Codespace Setup
 ```bash
 # Install optimized configuration for Codespaces
-markv-setup install bash --type codespace_full
+marckv-setup install bash --type codespace_full
 markv-setup install docker
 source ~/.bashrc
 ```
